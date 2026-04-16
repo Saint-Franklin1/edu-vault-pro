@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export type AppRole =
   | "student"
@@ -9,11 +10,46 @@ export type AppRole =
   | "county_admin"
   | "super_admin";
 
+export type AdminStatus = "active" | "suspended" | "banned" | "deleted";
+
 export interface AuthState {
   session: Session | null;
   user: User | null;
   roles: AppRole[];
   loading: boolean;
+}
+
+const STATUS_MESSAGES: Record<Exclude<AdminStatus, "active">, string> = {
+  suspended: "Your admin account has been suspended. Contact a super admin for assistance.",
+  banned: "Your admin account has been banned. Access is permanently revoked.",
+  deleted: "This admin account has been deleted.",
+};
+
+async function loadRolesAndEnforceStatus(userId: string): Promise<AppRole[]> {
+  const [{ data: roleRows }, { data: profile }] = await Promise.all([
+    supabase.from("user_roles").select("role").eq("user_id", userId),
+    supabase
+      .from("profiles")
+      .select("admin_status")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
+
+  const roles = (roleRows ?? []).map((r: { role: AppRole }) => r.role);
+  const status = (profile?.admin_status ?? "active") as AdminStatus;
+  const userIsAdmin = roles.some((r) => r !== "student");
+
+  if (userIsAdmin && status !== "active") {
+    await supabase.auth.signOut();
+    toast({
+      title: "Sign-in blocked",
+      description: STATUS_MESSAGES[status],
+      variant: "destructive",
+    });
+    return [];
+  }
+
+  return roles;
 }
 
 export function useAuth(): AuthState & { signOut: () => Promise<void> } {
@@ -30,15 +66,9 @@ export function useAuth(): AuthState & { signOut: () => Promise<void> } {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        // defer role fetch to avoid deadlock
+        // defer to avoid deadlock with the auth callback
         setTimeout(() => {
-          supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", newSession.user.id)
-            .then(({ data }) => {
-              setRoles((data ?? []).map((r: { role: AppRole }) => r.role));
-            });
+          loadRolesAndEnforceStatus(newSession.user.id).then(setRoles);
         }, 0);
       } else {
         setRoles([]);
@@ -50,14 +80,10 @@ export function useAuth(): AuthState & { signOut: () => Promise<void> } {
       setSession(existing);
       setUser(existing?.user ?? null);
       if (existing?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", existing.user.id)
-          .then(({ data }) => {
-            setRoles((data ?? []).map((r: { role: AppRole }) => r.role));
-            setLoading(false);
-          });
+        loadRolesAndEnforceStatus(existing.user.id).then((r) => {
+          setRoles(r);
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
