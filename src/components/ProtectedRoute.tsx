@@ -29,7 +29,8 @@ export function ProtectedRoute({
   }
 
   if (require === "student" && isAdmin(roles)) {
-    return <Navigate to="/admin" replace />;
+    const dest = roles.includes("super_admin") ? "/admin/overview" : "/admin";
+    return <Navigate to={dest} replace />;
   }
 
   return <>{children}</>;

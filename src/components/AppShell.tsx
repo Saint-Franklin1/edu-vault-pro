@@ -13,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = user
     ? admin
       ? [
+          ...(role === "super_admin" ? [{ to: "/admin/overview", label: "Overview" }] : []),
           { to: "/admin", label: "Dashboard" },
           { to: "/admin/bursaries", label: "Bursaries" },
           ...(role === "super_admin" ? [

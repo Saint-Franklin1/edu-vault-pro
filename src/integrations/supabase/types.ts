@@ -216,6 +216,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admin_status: Database["public"]["Enums"]["admin_status"]
           constituency_id: string | null
           county_id: string | null
           created_at: string
@@ -224,10 +225,14 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          status_changed_at: string | null
+          status_changed_by: string | null
+          status_reason: string | null
           updated_at: string
           ward_id: string | null
         }
         Insert: {
+          admin_status?: Database["public"]["Enums"]["admin_status"]
           constituency_id?: string | null
           county_id?: string | null
           created_at?: string
@@ -236,10 +241,14 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
           updated_at?: string
           ward_id?: string | null
         }
         Update: {
+          admin_status?: Database["public"]["Enums"]["admin_status"]
           constituency_id?: string | null
           county_id?: string | null
           created_at?: string
@@ -248,6 +257,9 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
           updated_at?: string
           ward_id?: string | null
         }
@@ -359,8 +371,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_admin_status: {
+        Args: {
+          _reason: string
+          _status: Database["public"]["Enums"]["admin_status"]
+          _target: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
+      admin_status: "active" | "suspended" | "banned" | "deleted"
       app_role:
         | "student"
         | "ward_admin"
@@ -495,6 +516,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_status: ["active", "suspended", "banned", "deleted"],
       app_role: [
         "student",
         "ward_admin",
