@@ -23,7 +23,12 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin(roles) ? "/admin" : "/student", { replace: true });
+      const dest = roles.includes("super_admin")
+        ? "/admin/overview"
+        : isAdmin(roles)
+          ? "/admin"
+          : "/student";
+      navigate(dest, { replace: true });
     }
   }, [user, roles, loading, navigate]);
 
