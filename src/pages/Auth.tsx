@@ -37,22 +37,28 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: { full_name: fullName },
       },
     });
     setBusy(false);
     if (error) {
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
-    } else {
+      return;
+    }
+    if (!data.session) {
+      setPendingEmail(email);
+      setNeedsVerification(true);
       toast({
-        title: "Account created",
-        description: "Check your email to confirm, then sign in.",
+        title: "Verify your email",
+        description: `We sent a verification link to ${email}. Click it to activate your account.`,
       });
+    } else {
+      toast({ title: "Account created" });
     }
   };
 
@@ -62,9 +68,38 @@ const Auth = () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) {
-      toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      const isUnconfirmed =
+        error.message.toLowerCase().includes("email not confirmed") ||
+        (error as { code?: string }).code === "email_not_confirmed";
+      if (isUnconfirmed) {
+        setPendingEmail(email);
+        setNeedsVerification(true);
+        toast({
+          title: "Email not verified",
+          description: "Please verify your email before signing in. We can resend the link.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      }
     } else {
       toast({ title: "Welcome back" });
+    }
+  };
+
+  const handleResend = async () => {
+    if (!pendingEmail) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth` },
+    });
+    setBusy(false);
+    if (error) {
+      toast({ title: "Could not resend", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Verification email sent", description: `Check ${pendingEmail}` });
     }
   };
 
