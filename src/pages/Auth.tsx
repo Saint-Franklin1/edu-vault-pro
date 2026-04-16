@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, MailCheck } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -35,22 +38,28 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: { full_name: fullName },
       },
     });
     setBusy(false);
     if (error) {
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
-    } else {
+      return;
+    }
+    if (!data.session) {
+      setPendingEmail(email);
+      setNeedsVerification(true);
       toast({
-        title: "Account created",
-        description: "Check your email to confirm, then sign in.",
+        title: "Verify your email",
+        description: `We sent a verification link to ${email}. Click it to activate your account.`,
       });
+    } else {
+      toast({ title: "Account created" });
     }
   };
 
@@ -60,9 +69,38 @@ const Auth = () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) {
-      toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      const isUnconfirmed =
+        error.message.toLowerCase().includes("email not confirmed") ||
+        (error as { code?: string }).code === "email_not_confirmed";
+      if (isUnconfirmed) {
+        setPendingEmail(email);
+        setNeedsVerification(true);
+        toast({
+          title: "Email not verified",
+          description: "Please verify your email before signing in. We can resend the link.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      }
     } else {
       toast({ title: "Welcome back" });
+    }
+  };
+
+  const handleResend = async () => {
+    if (!pendingEmail) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth` },
+    });
+    setBusy(false);
+    if (error) {
+      toast({ title: "Could not resend", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Verification email sent", description: `Check ${pendingEmail}` });
     }
   };
 
@@ -85,6 +123,27 @@ const Auth = () => {
             <CardDescription>Sign in or create a student account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {needsVerification && pendingEmail && (
+              <Alert>
+                <MailCheck className="h-4 w-4" />
+                <AlertTitle>Verify your email</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>
+                    We sent a verification link to <strong>{pendingEmail}</strong>. Click the link
+                    in that email to activate your account, then sign in.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResend}
+                    disabled={busy}
+                  >
+                    {busy ? "Sending…" : "Resend verification email"}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               type="button"
               variant="outline"
