@@ -123,6 +123,27 @@ const Auth = () => {
             <CardDescription>Sign in or create a student account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {needsVerification && pendingEmail && (
+              <Alert>
+                <MailCheck className="h-4 w-4" />
+                <AlertTitle>Verify your email</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>
+                    We sent a verification link to <strong>{pendingEmail}</strong>. Click the link
+                    in that email to activate your account, then sign in.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResend}
+                    disabled={busy}
+                  >
+                    {busy ? "Sending…" : "Resend verification email"}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               type="button"
               variant="outline"
