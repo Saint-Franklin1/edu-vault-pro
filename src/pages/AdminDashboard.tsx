@@ -77,17 +77,13 @@ const AdminDashboard = () => {
   };
 
   const setStatus = async (id: string, status: DocStatus, reasonText?: string) => {
-    const patch: Record<string, unknown> = { status };
-    if (status === "verified") {
-      patch.verified_by = user?.id;
-      patch.verified_at = new Date().toISOString();
-      patch.rejection_reason = null;
-    }
-    if (status === "rejected") {
-      patch.rejection_reason = reasonText ?? null;
-      patch.verified_by = user?.id;
-      patch.verified_at = new Date().toISOString();
-    }
+    const nowIso = new Date().toISOString();
+    const patch =
+      status === "verified"
+        ? { status, verified_by: user?.id, verified_at: nowIso, rejection_reason: null }
+        : status === "rejected"
+        ? { status, verified_by: user?.id, verified_at: nowIso, rejection_reason: reasonText ?? null }
+        : { status };
     const { error } = await supabase.from("documents").update(patch).eq("id", id);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
