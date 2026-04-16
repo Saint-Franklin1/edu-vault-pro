@@ -20,6 +20,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
