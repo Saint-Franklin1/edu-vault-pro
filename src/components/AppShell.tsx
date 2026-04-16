@@ -15,7 +15,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       ? [
           { to: "/admin", label: "Dashboard" },
           { to: "/admin/bursaries", label: "Bursaries" },
-          ...(role === "super_admin" ? [{ to: "/admin/audit", label: "Audit" }] : []),
+          ...(role === "super_admin" ? [
+            { to: "/admin/roles", label: "Roles" },
+            { to: "/admin/audit", label: "Audit" },
+          ] : []),
         ]
       : [
           { to: "/student", label: "Documents" },

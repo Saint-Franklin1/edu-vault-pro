@@ -12,6 +12,7 @@ import StudentBursaries from "./pages/StudentBursaries.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import AdminBursaries from "./pages/AdminBursaries.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
+import AdminRoles from "./pages/AdminRoles.tsx";
 import Verify from "./pages/Verify.tsx";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/admin" element={<ProtectedRoute require="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/bursaries" element={<ProtectedRoute require="admin"><AdminBursaries /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute require="admin"><AdminAudit /></ProtectedRoute>} />
+          <Route path="/admin/roles" element={<ProtectedRoute require="admin"><AdminRoles /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
