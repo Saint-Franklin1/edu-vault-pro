@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { GraduationCap, LogOut, Shield, User as UserIcon } from "lucide-react";
 import { useAuth, highestRole, isAdmin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, roles, signOut } = useAuth();
@@ -59,6 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {user ? (
               <>
                 <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
