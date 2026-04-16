@@ -17,10 +17,14 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { ShieldCheck, Trash2, UserCog } from "lucide-react";
 
+type AdminStatus = "active" | "suspended" | "banned" | "deleted";
+
 interface ProfileRow {
   id: string;
   email: string | null;
   full_name: string | null;
+  admin_status: AdminStatus;
+  status_reason: string | null;
 }
 interface RoleRow {
   id: string;
@@ -29,6 +33,10 @@ interface RoleRow {
 }
 
 const ALL_ROLES: AppRole[] = ["student", "ward_admin", "constituency_admin", "county_admin", "super_admin"];
+const STATUS_OPTIONS: AdminStatus[] = ["active", "suspended", "banned", "deleted"];
+
+const statusVariant = (s: AdminStatus): "default" | "secondary" | "destructive" =>
+  s === "active" ? "default" : s === "suspended" ? "secondary" : "destructive";
 
 const AdminRoles = () => {
   const { roles: myRoles, loading } = useAuth();
@@ -45,7 +53,9 @@ const AdminRoles = () => {
 
   const load = async () => {
     const [{ data: profs, error: pErr }, { data: rs, error: rErr }] = await Promise.all([
-      supabase.from("profiles").select("id,email,full_name").is("deleted_at", null).order("created_at", { ascending: false }),
+      supabase.from("profiles")
+        .select("id,email,full_name,admin_status,status_reason")
+        .order("created_at", { ascending: false }),
       supabase.from("user_roles").select("id,user_id,role"),
     ]);
     if (pErr) toast({ title: "Failed to load users", description: pErr.message, variant: "destructive" });
@@ -90,6 +100,22 @@ const AdminRoles = () => {
       toast({ title: "Couldn't revoke", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Role revoked" });
+      load();
+    }
+  };
+
+  const changeStatus = async (uid: string, status: AdminStatus) => {
+    const reason = status === "active" ? null : window.prompt(`Reason for marking user as ${status}?`, "");
+    if (status !== "active" && reason === null) return;
+    const { error } = await supabase.rpc("set_admin_status", {
+      _target: uid,
+      _status: status,
+      _reason: reason,
+    });
+    if (error) {
+      toast({ title: "Couldn't update status", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `User marked ${status}` });
       load();
     }
   };
@@ -170,6 +196,7 @@ const AdminRoles = () => {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Roles</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Manage</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -202,14 +229,30 @@ const AdminRoles = () => {
                             </div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(p.admin_status)} className="capitalize">
+                            {p.admin_status}
+                          </Badge>
+                          {p.status_reason && (
+                            <div className="text-xs text-muted-foreground mt-1 max-w-[200px] truncate" title={p.status_reason}>
+                              {p.status_reason}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setTargetUserId(p.id)}
-                          >
-                            Select
-                          </Button>
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <Select value={p.admin_status} onValueChange={(v) => changeStatus(p.id, v as AdminStatus)}>
+                              <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((s) => (
+                                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" onClick={() => setTargetUserId(p.id)}>
+                              Select
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

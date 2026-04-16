@@ -10,6 +10,7 @@ import StudentDashboard from "./pages/StudentDashboard.tsx";
 import StudentQR from "./pages/StudentQR.tsx";
 import StudentBursaries from "./pages/StudentBursaries.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard.tsx";
 import AdminBursaries from "./pages/AdminBursaries.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
 import AdminRoles from "./pages/AdminRoles.tsx";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/student/bursaries" element={<ProtectedRoute require="student"><StudentBursaries /></ProtectedRoute>} />
 
           <Route path="/admin" element={<ProtectedRoute require="admin"><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/overview" element={<ProtectedRoute require="admin"><SuperAdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/bursaries" element={<ProtectedRoute require="admin"><AdminBursaries /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute require="admin"><AdminAudit /></ProtectedRoute>} />
           <Route path="/admin/roles" element={<ProtectedRoute require="admin"><AdminRoles /></ProtectedRoute>} />
