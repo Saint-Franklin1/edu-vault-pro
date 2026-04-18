@@ -1,11 +1,15 @@
 import { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 
 type Section = { heading: string; body: ReactNode };
 type Doc = { title: string; description: string; updated: string; sections: Section[] };
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 const DOCS: Record<string, Doc> = {
   privacy: {
@@ -346,6 +350,10 @@ export default function Legal() {
   if (!doc) {
     return (
       <AppShell>
+        <Helmet>
+          <title>Page not found | Elimu Vault</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
         <div className="container py-16 text-center">
           <h1 className="text-2xl font-semibold mb-2">Page not found</h1>
           <p className="text-muted-foreground mb-6">We couldn't find that resource.</p>
@@ -357,27 +365,71 @@ export default function Legal() {
     );
   }
 
+  const pageTitle = `${doc.title} | Elimu Vault`;
+  const canonical = typeof window !== "undefined" ? window.location.href : `/legal/${slug}`;
+  const sections = doc.sections.map((s) => ({ ...s, id: slugify(s.heading) }));
+
   return (
     <AppShell>
-      <article className="container max-w-3xl py-12">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={doc.description} />
+        <link rel="canonical" href={canonical} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={doc.description} />
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: doc.title,
+          description: doc.description,
+          dateModified: doc.updated,
+          publisher: { "@type": "Organization", name: "Elimu Vault" },
+        })}</script>
+      </Helmet>
+      <article className="container py-12">
         <Button asChild variant="ghost" size="sm" className="mb-6 -ml-2">
           <Link to="/">
             <ArrowLeft className="w-4 h-4" />
             Back home
           </Link>
         </Button>
-        <header className="mb-8 pb-6 border-b">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">{doc.title}</h1>
-          <p className="text-muted-foreground">{doc.description}</p>
-          <p className="text-xs text-muted-foreground mt-3">Last updated: {doc.updated}</p>
-        </header>
-        <div className="space-y-8">
-          {doc.sections.map((s, i) => (
-            <section key={i}>
-              <h2 className="text-lg font-semibold mb-2">{s.heading}</h2>
-              <div className="text-sm text-muted-foreground leading-relaxed">{s.body}</div>
-            </section>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-10 lg:gap-12">
+          <div className="min-w-0 max-w-3xl">
+            <header className="mb-8 pb-6 border-b">
+              <h1 className="text-3xl font-bold tracking-tight mb-2">{doc.title}</h1>
+              <p className="text-muted-foreground">{doc.description}</p>
+              <p className="text-xs text-muted-foreground mt-3">Last updated: {doc.updated}</p>
+            </header>
+            <div className="space-y-8">
+              {sections.map((s) => (
+                <section key={s.id} id={s.id} className="scroll-mt-24">
+                  <h2 className="text-lg font-semibold mb-2">{s.heading}</h2>
+                  <div className="text-sm text-muted-foreground leading-relaxed">{s.body}</div>
+                </section>
+              ))}
+            </div>
+          </div>
+          <aside className="hidden lg:block">
+            <nav aria-label="Table of contents" className="sticky top-24">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                On this page
+              </p>
+              <ul className="space-y-2 text-sm border-l">
+                {sections.map((s) => (
+                  <li key={s.id}>
+                    <a
+                      href={`#${s.id}`}
+                      className="block -ml-px pl-3 border-l border-transparent text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                    >
+                      {s.heading}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </aside>
         </div>
       </article>
     </AppShell>
