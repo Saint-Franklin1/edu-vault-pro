@@ -1,9 +1,11 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { GraduationCap, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { LogOut, Shield, User as UserIcon } from "lucide-react";
 import { useAuth, highestRole, isAdmin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Footer } from "@/components/Footer";
+import logo from "@/assets/elimu-vault-logo.png";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, roles, signOut } = useAuth();
@@ -34,9 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="border-b bg-card sticky top-0 z-40 shadow-card">
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 font-semibold text-lg">
-            <span className="grid place-items-center w-9 h-9 rounded-lg bg-gradient-hero text-primary-foreground shadow-elegant">
-              <GraduationCap className="w-5 h-5" />
-            </span>
+            <img src={logo} alt="Elimu Vault" className="w-9 h-9 object-contain" />
             <span className="hidden sm:inline">Elimu Vault</span>
           </Link>
 
@@ -90,11 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t py-6 mt-auto">
-        <div className="container text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Elimu Vault — Verified student documents for Kenya.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
