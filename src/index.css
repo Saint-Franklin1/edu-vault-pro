@@ -115,4 +115,31 @@
   .bg-gradient-subtle { background: var(--gradient-subtle); }
   .shadow-elegant { box-shadow: var(--shadow-elegant); }
   .shadow-card { box-shadow: var(--shadow-card); }
+
+  /* Hero decorative grid + orbs */
+  .hero-grid {
+    background-image:
+      linear-gradient(to right, hsl(0 0% 100% / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+    animation: hero-grid-pan 30s linear infinite;
+  }
+  .hero-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+@keyframes hero-grid-pan {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 48px 48px, 48px 48px; }
+}
+@keyframes hero-orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -30px) scale(1.08); }
 }
