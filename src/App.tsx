@@ -15,6 +15,7 @@ import AdminBursaries from "./pages/AdminBursaries.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
 import AdminRoles from "./pages/AdminRoles.tsx";
 import Verify from "./pages/Verify.tsx";
+import Legal from "./pages/Legal.tsx";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify/:user_id" element={<Verify />} />
+          <Route path="/legal/:slug" element={<Legal />} />
 
           <Route path="/student" element={<ProtectedRoute require="student"><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/qr" element={<ProtectedRoute require="student"><StudentQR /></ProtectedRoute>} />

@@ -9,6 +9,7 @@ import logo from "@/assets/elimu-vault-logo.png";
 
 const APP_VERSION = "v1.0.0";
 const FEEDBACK_EMAIL = "franklinekimtai12@gmail.com";
+const PHONE = "+254 768 711528";
 
 export function Footer() {
   const { toast } = useToast();
@@ -78,45 +79,27 @@ export function Footer() {
             <div>
               <h3 className="text-sm font-semibold mb-3">Resources</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
-                <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">FAQs</Link></li>
-                <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Documentation</Link></li>
+                <li><Link to="/legal/help" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
+                <li><Link to="/legal/faqs" className="text-muted-foreground hover:text-primary transition-colors">FAQs</Link></li>
+                <li><Link to="/legal/docs" className="text-muted-foreground hover:text-primary transition-colors">Documentation</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-sm font-semibold mb-3">Legal</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/" className="text-muted-foreground hover:text-primary transition-colors">Terms of Use</Link></li>
+                <li><Link to="/legal/privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/legal/terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Use</Link></li>
               </ul>
             </div>
           </div>
 
-          {/* Column 4: Contact & Feedback */}
+          {/* Column 4: Feedback */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Contact</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5" />
-                <a href={`mailto:${FEEDBACK_EMAIL}`} className="hover:text-primary transition-colors break-all">{FEEDBACK_EMAIL}</a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5" />
-                <a href="tel:+254768711528" className="hover:text-primary transition-colors">+254 768 711528</a>
-              </li>
-            </ul>
-            <div className="flex items-center gap-3">
-              <a href="https://www.github.com/Saint-Franklin1" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
-                className="text-muted-foreground hover:text-primary transition-colors">
-                <Github className="w-4 h-4" />
-              </a>
-              <a href="https://www.linkedin.com/in/frankline-kimtai-2726a93a9" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
-                className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin className="w-4 h-4" />
-              </a>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-2 pt-2">
+            <h3 className="text-sm font-semibold">Send Feedback</h3>
+            <p className="text-xs text-muted-foreground">
+              Share a bug, idea, or improvement. We read every message.
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-2">
               <Input
                 type="email"
                 placeholder="Your email"
@@ -130,7 +113,7 @@ export function Footer() {
                 placeholder="Your feedback"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="min-h-[72px] text-sm resize-none"
+                className="min-h-[88px] text-sm resize-none"
                 aria-label="Feedback message"
                 required
               />
@@ -139,9 +122,34 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Elimu Vault. All rights reserved.</span>
-          <span>{APP_VERSION}</span>
+        {/* Bottom bar: contact details horizontally */}
+        <div className="mt-10 pt-6 border-t space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              <a href={`mailto:${FEEDBACK_EMAIL}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Mail className="w-4 h-4" />
+                <span className="break-all">{FEEDBACK_EMAIL}</span>
+              </a>
+              <a href="tel:+254768711528" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <Phone className="w-4 h-4" />
+                <span>{PHONE}</span>
+              </a>
+            </div>
+            <div className="flex items-center gap-3">
+              <a href="https://www.github.com/Saint-Franklin1" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
+                className="text-muted-foreground hover:text-primary transition-colors">
+                <Github className="w-4 h-4" />
+              </a>
+              <a href="https://www.linkedin.com/in/frankline-kimtai-2726a93a9" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
+                className="text-muted-foreground hover:text-primary transition-colors">
+                <Linkedin className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>© {new Date().getFullYear()} Elimu Vault. All rights reserved.</span>
+            <span>{APP_VERSION}</span>
+          </div>
         </div>
       </div>
     </footer>
