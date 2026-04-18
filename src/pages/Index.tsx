@@ -11,8 +11,21 @@ const Index = () => {
 
   return (
     <AppShell>
-      <section className="bg-gradient-hero">
-        <div className="container py-20 md:py-28 text-center">
+      <section className="relative overflow-hidden bg-gradient-hero">
+        {/* Decorative animated layers */}
+        <div className="absolute inset-0 hero-grid" aria-hidden="true" />
+        <div
+          className="hero-orb w-[420px] h-[420px] -top-32 -left-24 bg-white"
+          style={{ animation: "hero-orb-float 14s ease-in-out infinite" }}
+          aria-hidden="true"
+        />
+        <div
+          className="hero-orb w-[360px] h-[360px] -bottom-32 -right-16 bg-primary-glow"
+          style={{ animation: "hero-orb-float 18s ease-in-out infinite reverse" }}
+          aria-hidden="true"
+        />
+
+        <div className="container relative py-20 md:py-28 text-center animate-fade-in">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white drop-shadow-sm">
             Verified student documents,
             <br />
@@ -23,7 +36,7 @@ const Index = () => {
             Share via QR code with bursary committees, scholarships, and beyond.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-elegant">
+            <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-elegant hover-scale">
               <Link to={dashHref}>{user ? "Go to dashboard" : "Get started"}</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="bg-transparent border-2 border-white/70 text-white hover:bg-white hover:text-primary font-semibold">
