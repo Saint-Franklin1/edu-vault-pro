@@ -122,33 +122,32 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar: contact details horizontally */}
-        <div className="mt-10 pt-6 border-t space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <a href={`mailto:${FEEDBACK_EMAIL}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Mail className="w-4 h-4" />
+        {/* Bottom bar: everything on one horizontal line */}
+        <div className="mt-10 pt-6 border-t">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 text-xs text-muted-foreground">
+            <span>© {new Date().getFullYear()} Elimu Vault. All rights reserved.</span>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <a href={`mailto:${FEEDBACK_EMAIL}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                <Mail className="w-3.5 h-3.5" />
                 <span className="break-all">{FEEDBACK_EMAIL}</span>
               </a>
-              <a href="tel:+254768711528" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <Phone className="w-4 h-4" />
+              <span className="hidden sm:inline text-border">•</span>
+              <a href="tel:+254768711528" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                <Phone className="w-3.5 h-3.5" />
                 <span>{PHONE}</span>
               </a>
-            </div>
-            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-border">•</span>
               <a href="https://www.github.com/Saint-Franklin1" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
-                className="text-muted-foreground hover:text-primary transition-colors">
-                <Github className="w-4 h-4" />
+                className="hover:text-primary transition-colors">
+                <Github className="w-3.5 h-3.5" />
               </a>
               <a href="https://www.linkedin.com/in/frankline-kimtai-2726a93a9" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
-                className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin className="w-4 h-4" />
+                className="hover:text-primary transition-colors">
+                <Linkedin className="w-3.5 h-3.5" />
               </a>
+              <span className="hidden sm:inline text-border">•</span>
+              <span>{APP_VERSION}</span>
             </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} Elimu Vault. All rights reserved.</span>
-            <span>{APP_VERSION}</span>
           </div>
         </div>
       </div>
