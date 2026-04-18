@@ -87,7 +87,7 @@
     --input: 222 40% 20%;
     --ring: 222 76% 56%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(222 76% 22%), hsl(222 76% 42%));
+    --gradient-hero: linear-gradient(135deg, hsl(222 76% 38%), hsl(222 76% 56%));
     --shadow-elegant: 0 10px 30px -12px hsl(0 0% 0% / 0.6);
 
     --sidebar-background: 222 47% 5%;

@@ -11,22 +11,22 @@ const Index = () => {
 
   return (
     <AppShell>
-      <section className="bg-gradient-hero text-primary-foreground">
+      <section className="bg-gradient-hero">
         <div className="container py-20 md:py-28 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white drop-shadow-sm">
             Verified student documents,
             <br />
-            <span className="opacity-90">reusable in seconds.</span>
+            <span className="text-white/95">reusable in seconds.</span>
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl mx-auto opacity-90 mb-8">
+          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 text-white/90">
             Upload your documents once. Get them verified by your local administrator.
             Share via QR code with bursary committees, scholarships, and beyond.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <Button asChild size="lg" variant="secondary">
+            <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-elegant">
               <Link to={dashHref}>{user ? "Go to dashboard" : "Get started"}</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
+            <Button asChild size="lg" variant="outline" className="bg-transparent border-2 border-white/70 text-white hover:bg-white hover:text-primary font-semibold">
               <Link to="/auth">I'm an administrator</Link>
             </Button>
           </div>
