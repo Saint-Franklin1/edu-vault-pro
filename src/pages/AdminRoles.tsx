@@ -44,11 +44,6 @@ const AdminRoles = () => {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [roleRows, setRoleRows] = useState<RoleRow[]>([]);
   const [search, setSearch] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  // assignment form
-  const [targetUserId, setTargetUserId] = useState<string>("");
-  const [newRole, setNewRole] = useState<AppRole>("ward_admin");
 
   const isSuper = myRoles.includes("super_admin");
 
@@ -76,24 +71,6 @@ const AdminRoles = () => {
     const q = search.toLowerCase();
     return (p.email ?? "").toLowerCase().includes(q) || (p.full_name ?? "").toLowerCase().includes(q);
   });
-
-  const rolesFor = (uid: string) => roleRows.filter((r) => r.user_id === uid).map((r) => r.role);
-
-  const assign = async () => {
-    if (!targetUserId) {
-      toast({ title: "Choose a user", variant: "destructive" });
-      return;
-    }
-    setBusy(true);
-    const { error } = await supabase.from("user_roles").insert({ user_id: targetUserId, role: newRole });
-    setBusy(false);
-    if (error) {
-      toast({ title: "Couldn't assign role", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Role assigned" });
-      load();
-    }
-  };
 
   const revoke = async (rowId: string) => {
     const { error } = await supabase.from("user_roles").delete().eq("id", rowId);
@@ -127,7 +104,9 @@ const AdminRoles = () => {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold">Role management</h1>
-            <p className="text-muted-foreground">Assign or revoke administrator roles. Super-admin only.</p>
+            <p className="text-muted-foreground">
+              Promote users to admin roles with geographic scope. Super-admin only.
+            </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="w-5 h-5 text-accent" />
@@ -137,45 +116,6 @@ const AdminRoles = () => {
 
         <AdminPromotionPanel onPromoted={load} />
 
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCog className="w-5 h-5" /> Assign role
-            </CardTitle>
-            <CardDescription>Choose a user, pick a role, and assign.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2 md:col-span-2">
-                <Label>User</Label>
-                <Select value={targetUserId} onValueChange={setTargetUserId}>
-                  <SelectTrigger><SelectValue placeholder="Pick user…" /></SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {profiles.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {(p.full_name || "—") + " · " + (p.email || p.id.slice(0, 8))}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ALL_ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="capitalize">{r.replace("_", " ")}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={assign} disabled={busy}>
-              {busy ? "Assigning…" : "Assign role"}
-            </Button>
-          </CardContent>
-        </Card>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
