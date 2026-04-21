@@ -192,9 +192,6 @@ const AdminRoles = () => {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Button size="sm" variant="ghost" onClick={() => setTargetUserId(p.id)}>
-                              Select
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
