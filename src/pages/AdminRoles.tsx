@@ -135,6 +135,8 @@ const AdminRoles = () => {
           </div>
         </div>
 
+        <AdminPromotionPanel onPromoted={load} />
+
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
