@@ -11,7 +11,11 @@ import { GeoSelector, GeoValue } from "@/components/GeoSelector";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { Pencil } from "lucide-react";
 
 interface Bursary {
   id: string;
@@ -22,6 +26,7 @@ interface Bursary {
   constituency_id: string | null;
   ward_id: string | null;
   created_at: string;
+  created_by: string | null;
 }
 
 const AdminBursaries = () => {
@@ -36,6 +41,12 @@ const AdminBursaries = () => {
   const [deadline, setDeadline] = useState("");
   const [geo, setGeo] = useState<GeoValue>({ county_id: null, constituency_id: null, ward_id: null });
   const [busy, setBusy] = useState(false);
+
+  // Edit state
+  const [editing, setEditing] = useState<Bursary | null>(null);
+  const [editDescription, setEditDescription] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -55,13 +66,26 @@ const AdminBursaries = () => {
   const load = () => {
     supabase
       .from("bursaries")
-      .select("id,title,description,deadline,county_id,constituency_id,ward_id,created_at")
+      .select("id,title,description,deadline,county_id,constituency_id,ward_id,created_at,created_by")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => setList((data as Bursary[]) ?? []));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const channel = supabase
+      .channel("bursaries-admin")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bursaries" },
+        () => load()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +107,34 @@ const AdminBursaries = () => {
       toast({ title: "Bursary posted" });
       setTitle(""); setDescription(""); setDeadline("");
       if (role !== "super_admin") setGeo(profileGeo);
+      load();
+    }
+  };
+
+  const canEdit = (b: Bursary) => role === "super_admin" || b.created_by === user?.id;
+
+  const openEdit = (b: Bursary) => {
+    setEditing(b);
+    setEditDescription(b.description ?? "");
+    setEditDeadline(b.deadline ?? "");
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("bursaries")
+      .update({
+        description: editDescription,
+        deadline: editDeadline || null,
+      })
+      .eq("id", editing.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Bursary updated" });
+      setEditing(null);
       load();
     }
   };
@@ -137,6 +189,9 @@ const AdminBursaries = () => {
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>All bursaries</CardTitle>
+            <CardDescription>
+              Title and scope are immutable once posted. You can adjust description and deadline only.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {list.length === 0 ? (
@@ -149,15 +204,31 @@ const AdminBursaries = () => {
                     <TableHead>Description</TableHead>
                     <TableHead>Deadline</TableHead>
                     <TableHead>Posted</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {list.map((b) => (
                     <TableRow key={b.id}>
                       <TableCell className="font-medium">{b.title}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-md truncate">{b.description}</TableCell>
-                      <TableCell>{b.deadline ? new Date(b.deadline).toLocaleDateString() : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-md truncate">
+                        {b.description}
+                      </TableCell>
+                      <TableCell>
+                        {b.deadline ? new Date(b.deadline).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(b.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canEdit(b) ? (
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(b)}>
+                            <Pencil className="w-4 h-4 mr-1" /> Edit
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Read-only</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -166,6 +237,49 @@ const AdminBursaries = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit bursary</DialogTitle>
+            <DialogDescription>
+              Only the description and deadline can be adjusted. Title and scope are immutable.
+            </DialogDescription>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Title (locked)</Label>
+                <Input value={editing.title} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={5}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Deadline</Label>
+                <Input
+                  type="date"
+                  value={editDeadline}
+                  onChange={(e) => setEditDeadline(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditing(null)} disabled={savingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 };
