@@ -346,6 +346,14 @@ export type Database = {
         Args: { _target_user: string }
         Returns: boolean
       }
+      find_user_by_email: {
+        Args: { _email: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_my_geo: {
         Args: never
         Returns: {
@@ -368,6 +376,16 @@ export type Database = {
           _entity: string
           _entity_id: string
           _metadata: Json
+        }
+        Returns: undefined
+      }
+      promote_user_to_admin: {
+        Args: {
+          _constituency: string
+          _county: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _target: string
+          _ward: string
         }
         Returns: undefined
       }
