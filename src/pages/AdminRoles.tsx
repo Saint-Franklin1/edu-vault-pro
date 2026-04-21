@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { ShieldCheck, Trash2, UserCog } from "lucide-react";
+import { ShieldCheck, Trash2 } from "lucide-react";
 import { AdminPromotionPanel } from "@/components/AdminPromotionPanel";
 
 type AdminStatus = "active" | "suspended" | "banned" | "deleted";
