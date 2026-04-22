@@ -7,8 +7,12 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { GraduationCap, MailCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,6 +27,11 @@ const Auth = () => {
   const [busy, setBusy] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  // Forgot password dialog
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -104,6 +113,28 @@ const Auth = () => {
     }
   };
 
+  const sendResetEmail = async () => {
+    if (!forgotEmail) {
+      toast({ title: "Enter your email", variant: "destructive" });
+      return;
+    }
+    setSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
+    if (error) {
+      toast({ title: "Couldn't send reset email", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Check your inbox",
+      description: `If an account exists for ${forgotEmail}, a reset link has been sent.`,
+    });
+    setForgotOpen(false);
+    setForgotEmail("");
+  };
+
   return (
     <AppShell>
       <div className="container max-w-md py-12">
@@ -181,8 +212,20 @@ const Auth = () => {
                     <Input id="si-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="si-pw">Password</Label>
-                    <Input id="si-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="si-pw">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotEmail(email);
+                          setForgotOpen(true);
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <PasswordInput id="si-pw" required value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>
                     {busy ? "Signing in…" : "Sign in"}
@@ -202,7 +245,7 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-pw">Password</Label>
-                    <Input id="su-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <PasswordInput id="su-pw" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>
                     {busy ? "Creating…" : "Create account"}
@@ -213,6 +256,35 @@ const Auth = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset your password</DialogTitle>
+            <DialogDescription>
+              Enter the email address tied to your account. We'll send you a link to set a new password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="forgot-email">Email</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setForgotOpen(false)} disabled={sendingReset}>
+              Cancel
+            </Button>
+            <Button onClick={sendResetEmail} disabled={sendingReset}>
+              {sendingReset ? "Sending…" : "Send reset link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 };
