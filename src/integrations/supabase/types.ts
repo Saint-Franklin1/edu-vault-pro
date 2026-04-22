@@ -108,6 +108,53 @@ export type Database = {
           },
         ]
       }
+      bursary_applications: {
+        Row: {
+          bursary_id: string
+          created_at: string
+          id: string
+          message: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          bursary_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          bursary_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bursary_applications_bursary_id_fkey"
+            columns: ["bursary_id"]
+            isOneToOne: false
+            referencedRelation: "bursaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       constituencies: {
         Row: {
           county_id: string
