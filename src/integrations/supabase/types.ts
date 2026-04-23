@@ -46,6 +46,7 @@ export type Database = {
       }
       bursaries: {
         Row: {
+          application_link: string
           constituency_id: string | null
           county_id: string | null
           created_at: string
@@ -59,6 +60,7 @@ export type Database = {
           ward_id: string | null
         }
         Insert: {
+          application_link: string
           constituency_id?: string | null
           county_id?: string | null
           created_at?: string
@@ -72,6 +74,7 @@ export type Database = {
           ward_id?: string | null
         }
         Update: {
+          application_link?: string
           constituency_id?: string | null
           county_id?: string | null
           created_at?: string
@@ -204,6 +207,12 @@ export type Database = {
       }
       documents: {
         Row: {
+          constituency_approved: boolean
+          constituency_approved_at: string | null
+          constituency_approved_by: string | null
+          county_approved: boolean
+          county_approved_at: string | null
+          county_approved_by: string | null
           created_at: string
           deleted_at: string | null
           file_name: string | null
@@ -218,8 +227,17 @@ export type Database = {
           user_id: string
           verified_at: string | null
           verified_by: string | null
+          ward_approved: boolean
+          ward_approved_at: string | null
+          ward_approved_by: string | null
         }
         Insert: {
+          constituency_approved?: boolean
+          constituency_approved_at?: string | null
+          constituency_approved_by?: string | null
+          county_approved?: boolean
+          county_approved_at?: string | null
+          county_approved_by?: string | null
           created_at?: string
           deleted_at?: string | null
           file_name?: string | null
@@ -234,8 +252,17 @@ export type Database = {
           user_id: string
           verified_at?: string | null
           verified_by?: string | null
+          ward_approved?: boolean
+          ward_approved_at?: string | null
+          ward_approved_by?: string | null
         }
         Update: {
+          constituency_approved?: boolean
+          constituency_approved_at?: string | null
+          constituency_approved_by?: string | null
+          county_approved?: boolean
+          county_approved_at?: string | null
+          county_approved_by?: string | null
           created_at?: string
           deleted_at?: string | null
           file_name?: string | null
@@ -250,6 +277,9 @@ export type Database = {
           user_id?: string
           verified_at?: string | null
           verified_by?: string | null
+          ward_approved?: boolean
+          ward_approved_at?: string | null
+          ward_approved_by?: string | null
         }
         Relationships: [
           {
