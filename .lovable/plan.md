@@ -1,94 +1,94 @@
 
 
-## Add Manual Admin Promotion Flow
+## Fix bursary visibility, document sync & add hierarchical approval
 
-Extend (not replace) the existing role system with a dedicated, super-admin-only **Admin Promotion Panel** that searches a user by email, assigns an admin role, and writes geographic scope — all enforced by RLS, a security-definer RPC, a validation trigger, and an audit log entry.
+Extend the existing system without breaking it. Roles stay in `user_roles` (never on `profiles`). All policies use the existing `has_role()` and `admin_can_access_user()` security-definer helpers — no new recursion risk.
 
-### Architectural reconciliation
+### Module 1 — Bursary visibility, application link, ownership
 
-The spec assumes `profiles.role`, but this project (correctly) stores roles in a separate `public.user_roles` table to prevent privilege escalation. We will keep that pattern and adapt the spec:
+**DB migration**
+- `bursaries.application_link text` — added nullable, backfill empty rows to `''`, then `SET NOT NULL`.
+- Replace the public `admins update own bursaries` UPDATE policy with a stricter pair:
+  - `creator updates own bursary` — `USING (created_by = auth.uid())`
+  - `super_admin updates any bursary` — `USING (has_role(auth.uid(),'super_admin'))`
+- Soft-delete is an UPDATE on `deleted_at`, so the same policies cover delete intent. No DELETE policy needed (table already blocks DELETE).
+- Tighten SELECT: replace the wide-open `public read bursaries` with two policies:
+  - `students read all open bursaries` (any authenticated student sees all non-deleted)
+  - `admins read scoped bursaries` — `super_admin` sees all; county/constituency/ward admins see rows whose scope id matches their own profile geo OR rows that are open (all geo cols null). Implemented via `has_role()` + `get_my_geo()` so no recursion.
+- Audit trigger extended: log `bursary.updated` on UPDATE and `bursary.deleted` when `deleted_at` flips.
 
-- "Set role" = insert/replace row in `user_roles`
-- "Set scope" = update `county_id / constituency_id / ward_id` on `profiles`
-- Both happen atomically inside one SECURITY DEFINER RPC
+**UI changes**
+- `AdminBursaries.tsx`
+  - "Application link" required input on create form; editable in the Edit dialog (description, deadline, application_link editable; title + scope locked).
+  - Table shows full description (no `truncate`), deadline, scope chip, link button.
+  - "Apply Now" button → `window.open(application_link,'_blank','noopener,noreferrer')`.
+  - Soft-delete button (creator or super_admin only) — sets `deleted_at = now()`.
+- `StudentBursaries.tsx`
+  - Card shows full description and an "Apply Now" external-link button (opens `application_link`) in addition to the in-app "Apply" flow.
 
-### 1. Database migration
+### Module 2 — Document visibility sync (admins)
 
-**a. Geography validation trigger** on `profiles` (replaces the proposed CHECK because role lives in `user_roles`):
+The existing `admins read scoped docs` policy is correct, but documents only show if the admin's own profile geo matches at the admin's level. Two real fixes:
 
-```text
-trigger validate_admin_geo BEFORE INSERT OR UPDATE on profiles
-  → looks up highest role in user_roles for NEW.id
-  → enforces:
-      ward_admin         → county_id, constituency_id, ward_id all NOT NULL
-      constituency_admin → county_id, constituency_id NOT NULL; ward_id NULL
-      county_admin       → county_id NOT NULL; constituency_id, ward_id NULL
-      super_admin/student → no geo requirement
-  → raises EXCEPTION on violation
-```
+- **Migration**: enable realtime publication for `public.documents` and `public.bursaries` (`ALTER PUBLICATION supabase_realtime ADD TABLE …`) so the existing `postgres_changes` subscriptions in `AdminDashboard.tsx` and `AdminBursaries.tsx` actually fire.
+- **UI**: `AdminDashboard.tsx` already has a realtime channel — confirmed working once publication is enabled. Add a dedicated "Pending documents" filter shortcut card (clickable count) and ensure new uploads appear without refresh.
 
-A mirrored trigger on `user_roles` re-validates the target profile after a role insert/update so the two tables stay consistent.
+### Module 3 — Hierarchical approval workflow
 
-**b. RPC `promote_user_to_admin`** (SECURITY DEFINER):
+**DB migration on `documents`**
+- Add `ward_approved boolean default false`, `constituency_approved boolean default false`, `county_approved boolean default false`, plus `ward_approved_by/at`, `constituency_approved_by/at`, `county_approved_by/at` (uuid + timestamptz) for audit.
+- Immutable CHECK constraint enforcing order:
+  ```
+  CHECK (
+    (NOT constituency_approved OR ward_approved)
+    AND (NOT county_approved OR constituency_approved)
+  )
+  ```
+- Replace the broad `admins update scoped docs` UPDATE policy with role-specific scoped policies (via `has_role()` + `admin_can_access_user()`):
+  - `ward_admin` may UPDATE in-scope docs
+  - `constituency_admin` may UPDATE in-scope docs
+  - `county_admin` may UPDATE in-scope docs
+  - `super_admin` may UPDATE any
+- BEFORE UPDATE trigger `enforce_doc_approval`:
+  - Reject ward approval unless actor is ward_admin/super_admin and `OLD.ward_approved=false`.
+  - Reject constituency approval unless `ward_approved=true` and actor is constituency_admin/super_admin.
+  - Reject county approval unless `constituency_approved=true` and actor is county_admin/super_admin.
+  - When all three flags become true, auto-set `status='verified'`, `verified_by=auth.uid()`, `verified_at=now()`.
+  - On any approval change, set the matching `*_approved_by/at` columns server-side.
+- Audit trigger extended: log `document.ward_approved`, `document.constituency_approved`, `document.county_approved`, `document.fully_verified`.
 
-Inputs: `_target uuid, _role app_role, _county uuid, _constituency uuid, _ward uuid`
+**UI on `AdminDashboard.tsx`**
+- Add "Approval stage" column with badges: Pending → Ward Approved → Constituency Approved → Fully Verified (or Rejected).
+- Replace single "Verify" button with stage-aware action shown only to the right role:
+  - Ward admin sees "Approve (Ward)" if `!ward_approved`.
+  - Constituency admin sees "Approve (Constituency)" only when `ward_approved && !constituency_approved`.
+  - County admin sees "Approve (County)" only when `constituency_approved && !county_approved`.
+  - Super admin sees whichever next step is available plus a "Force verify" override.
+- Reject remains available at any stage (sets `status='rejected'`, captures `rejection_reason`).
 
-Logic:
-1. Assert caller `has_role(auth.uid(), 'super_admin')` — else raise.
-2. Assert `auth.uid() <> _target` (block self-promotion).
-3. Validate role/geo combination matches the matrix above.
-4. `DELETE FROM user_roles WHERE user_id = _target` then `INSERT` the new role (single-role-per-user model).
-5. `UPDATE profiles SET county_id, constituency_id, ward_id WHERE id = _target`.
-6. `INSERT INTO audit_logs` with action `ADMIN_PROMOTION`, entity `profiles`, metadata `{assigned_role, county_id, constituency_id, ward_id}`.
+### Module 4 — Audit logging
 
-**c. RPC `find_user_by_email`** (SECURITY DEFINER, super-admin only) — returns `id, email, full_name` so super admin can search across all users without widening `profiles` RLS.
+Already covered above — extend `audit_bursary` and `audit_document` triggers to log update/delete/approval events with actor + metadata. All writes flow through these triggers, so coverage is complete and tamper-resistant.
 
-### 2. Frontend — `AdminPromotionPanel`
+### Module 5 — Final UI polish
 
-New component `src/components/AdminPromotionPanel.tsx` mounted as a new card at the top of `src/pages/AdminRoles.tsx` (existing role list stays intact below it).
+- Bursary cards: full description, scope chip, deadline, "Apply Now" external button, in-app "Apply" flow preserved.
+- Documents: visible across admin dashboards in real time; status + approval-stage indicator.
+- Approval: step-based UI driven by current flags + actor role; impossible transitions hidden and rejected at DB.
 
-Card layout (Tailwind, matches existing design tokens):
+### Files touched
 
-```text
-┌─ Promote user to admin ──────────────────┐
-│ Email   [____________________]  [Search] │
-│ ── once user found: ──                   │
-│ Found: Jane Doe (jane@x.com)             │
-│ Role    [ Select role ▾ ]                │
-│ County  [ Select ▾ ]                     │
-│ Const.  [ Select ▾ ] (hidden for county) │
-│ Ward    [ Select ▾ ] (ward_admin only)   │
-│ [ Promote user ]  ← disabled until valid │
-└──────────────────────────────────────────┘
-```
+- **New migration** — `application_link` column, replacement bursary policies, approval columns + check + trigger, replacement document update policies, realtime publication, audit additions.
+- **Edit** `src/pages/AdminBursaries.tsx` — application_link field, full description, Apply Now, soft-delete.
+- **Edit** `src/pages/StudentBursaries.tsx` — Apply Now external button alongside existing apply flow.
+- **Edit** `src/pages/AdminDashboard.tsx` — approval-stage column, role-gated approval buttons, override for super admin.
+- **Edit** `src/components/StatusBadge.tsx` — add a small `ApprovalStageBadge` (or extend) for ward/constituency/county/fully verified.
 
-Behavior:
-- Email search calls `find_user_by_email` RPC. Shows "no user found" or the matched profile.
-- Role dropdown lists `ward_admin | constituency_admin | county_admin | super_admin` (no `student` — it's the default).
-- County/constituency/ward dropdowns reuse the existing `GeoSelector` pattern (cascading load from `counties → constituencies → wards`). Fields hide based on selected role.
-- Client-side validation enforces the same role/geo matrix; submit button disabled until valid.
-- Submit → calls `promote_user_to_admin` RPC. Toast success/error. Refreshes the existing user list.
+### Security guarantees
 
-### 3. Routing & navigation
-
-No new routes. Panel appears on existing `/admin/roles` page (super-admin-only via existing guard). Existing assign/revoke UI remains as a fallback management surface.
-
-### 4. Security guarantees (mapped to spec test cases)
-
-| Test | Enforcement |
-|---|---|
-| Student promotes | RPC asserts `has_role(super_admin)` → raises |
-| Ward admin promotes | Same — only super_admin passes |
-| Super admin promotes | Allowed |
-| Invalid geography | Trigger + RPC validation raise EXCEPTION |
-| Self-promotion | RPC asserts `auth.uid() <> _target` |
-| Data leak across scope | Existing `admin_can_access_user` RLS unchanged |
-| Constituency/county scope visibility | Existing scoped RLS unchanged |
-
-### 5. Files touched
-
-- **New migration** — geo validation triggers, `promote_user_to_admin` RPC, `find_user_by_email` RPC
-- **New** `src/components/AdminPromotionPanel.tsx`
-- **Edit** `src/pages/AdminRoles.tsx` — mount the panel above existing cards
-- No changes to `useAuth`, routing, RLS policies on existing tables, or any other feature
+- Roles never read from `profiles` — always via `has_role()` (no recursion).
+- Approval order enforced both by CHECK constraint and BEFORE UPDATE trigger; client cannot skip stages.
+- Only creator or super_admin may edit/soft-delete bursaries.
+- All approval and bursary lifecycle events written to `audit_logs` server-side.
+- Existing features (auth, promotion RPC, applications, geo validation) untouched.
 
