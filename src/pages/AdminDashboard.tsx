@@ -27,6 +27,8 @@ interface DocRow {
   user_id: string;
   rejection_reason: string | null;
   created_at: string;
+  chief_approved: boolean;
+  chief_category: string | null;
   ward_approved: boolean;
   constituency_approved: boolean;
   county_approved: boolean;
@@ -35,11 +37,13 @@ interface DocRow {
 
 const stageBadge = (d: DocRow) => {
   if (d.status === "rejected") return { label: "Rejected", variant: "destructive" as const };
-  if (d.county_approved && d.constituency_approved && d.ward_approved)
+  if (d.county_approved && d.constituency_approved && d.ward_approved && d.chief_approved)
     return { label: "Fully Verified", variant: "default" as const };
+  if (d.county_approved) return { label: "County Approved", variant: "secondary" as const };
   if (d.constituency_approved) return { label: "Constituency Approved", variant: "secondary" as const };
   if (d.ward_approved) return { label: "Ward Approved", variant: "secondary" as const };
-  return { label: "Pending Ward", variant: "outline" as const };
+  if (d.chief_approved) return { label: "Chief Approved", variant: "secondary" as const };
+  return { label: "Pending Chief", variant: "outline" as const };
 };
 
 const AdminDashboard = () => {
@@ -55,7 +59,7 @@ const AdminDashboard = () => {
     let q = supabase
       .from("documents")
       .select(
-        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
+        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -139,22 +143,14 @@ const AdminDashboard = () => {
     window.open(data.signedUrl, "_blank", "noopener");
   };
 
-  // Decide which approval action this admin can take on this document right now
+  // Super admin is intentionally excluded from approvals (oversight only).
   const nextAction = (d: DocRow): null | "ward" | "constituency" | "county" => {
     if (d.status === "rejected") return null;
+    if (!d.chief_approved) return null; // Chief must approve first (handled in ChiefDashboard)
     if (d.ward_approved && d.constituency_approved && d.county_approved) return null;
-    if (!d.ward_approved) {
-      if (role === "ward_admin" || role === "super_admin") return "ward";
-      return null;
-    }
-    if (!d.constituency_approved) {
-      if (role === "constituency_admin" || role === "super_admin") return "constituency";
-      return null;
-    }
-    if (!d.county_approved) {
-      if (role === "county_admin" || role === "super_admin") return "county";
-      return null;
-    }
+    if (!d.ward_approved) return role === "ward_admin" ? "ward" : null;
+    if (!d.constituency_approved) return role === "constituency_admin" ? "constituency" : null;
+    if (!d.county_approved) return role === "county_admin" ? "county" : null;
     return null;
   };
 

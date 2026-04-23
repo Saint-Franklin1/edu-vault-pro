@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 
 export type AppRole =
   | "student"
+  | "chief"
   | "ward_admin"
   | "constituency_admin"
   | "county_admin"
@@ -105,6 +106,7 @@ export function highestRole(roles: AppRole[]): AppRole | null {
     "county_admin",
     "constituency_admin",
     "ward_admin",
+    "chief",
     "student",
   ];
   for (const r of order) if (roles.includes(r)) return r;

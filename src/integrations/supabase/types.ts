@@ -207,6 +207,11 @@ export type Database = {
       }
       documents: {
         Row: {
+          chief_approved: boolean
+          chief_approved_at: string | null
+          chief_approved_by: string | null
+          chief_category: string | null
+          chief_notes: string | null
           constituency_approved: boolean
           constituency_approved_at: string | null
           constituency_approved_by: string | null
@@ -219,6 +224,7 @@ export type Database = {
           file_size: number | null
           id: string
           mime_type: string | null
+          recommendation_letter_url: string | null
           rejection_reason: string | null
           status: Database["public"]["Enums"]["document_status"]
           storage_path: string
@@ -232,6 +238,11 @@ export type Database = {
           ward_approved_by: string | null
         }
         Insert: {
+          chief_approved?: boolean
+          chief_approved_at?: string | null
+          chief_approved_by?: string | null
+          chief_category?: string | null
+          chief_notes?: string | null
           constituency_approved?: boolean
           constituency_approved_at?: string | null
           constituency_approved_by?: string | null
@@ -244,6 +255,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           mime_type?: string | null
+          recommendation_letter_url?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           storage_path: string
@@ -257,6 +269,11 @@ export type Database = {
           ward_approved_by?: string | null
         }
         Update: {
+          chief_approved?: boolean
+          chief_approved_at?: string | null
+          chief_approved_by?: string | null
+          chief_category?: string | null
+          chief_notes?: string | null
           constituency_approved?: boolean
           constituency_approved_at?: string | null
           constituency_approved_by?: string | null
@@ -269,6 +286,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           mime_type?: string | null
+          recommendation_letter_url?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["document_status"]
           storage_path?: string
@@ -483,6 +501,7 @@ export type Database = {
         | "constituency_admin"
         | "county_admin"
         | "super_admin"
+        | "chief"
       document_status: "pending" | "in_queue" | "verified" | "rejected"
     }
     CompositeTypes: {
@@ -618,6 +637,7 @@ export const Constants = {
         "constituency_admin",
         "county_admin",
         "super_admin",
+        "chief",
       ],
       document_status: ["pending", "in_queue", "verified", "rejected"],
     },
