@@ -11,12 +11,13 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CalendarDays, MapPin, CheckCircle2, Clock, XCircle, ExternalLink } from "lucide-react";
 
 interface Bursary {
   id: string;
   title: string;
   description: string | null;
+  application_link: string | null;
   deadline: string | null;
   county_id: string | null;
   constituency_id: string | null;
@@ -63,7 +64,7 @@ const StudentBursaries = () => {
     const { data } = await supabase
       .from("bursaries")
       .select(
-        "id,title,description,deadline,county_id,constituency_id,ward_id, counties(name), constituencies(name), wards(name)"
+        "id,title,description,application_link,deadline,county_id,constituency_id,ward_id, counties(name), constituencies(name), wards(name)"
       )
       .is("deleted_at", null)
       .order("deadline", { ascending: true, nullsFirst: false });

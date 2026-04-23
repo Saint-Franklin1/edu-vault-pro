@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { GeoSelector, GeoValue } from "@/components/GeoSelector";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -15,12 +16,13 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 
 interface Bursary {
   id: string;
   title: string;
   description: string | null;
+  application_link: string;
   deadline: string | null;
   county_id: string | null;
   constituency_id: string | null;
@@ -38,6 +40,7 @@ const AdminBursaries = () => {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [applicationLink, setApplicationLink] = useState("");
   const [deadline, setDeadline] = useState("");
   const [geo, setGeo] = useState<GeoValue>({ county_id: null, constituency_id: null, ward_id: null });
   const [busy, setBusy] = useState(false);
@@ -46,6 +49,7 @@ const AdminBursaries = () => {
   const [editing, setEditing] = useState<Bursary | null>(null);
   const [editDescription, setEditDescription] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
+  const [editLink, setEditLink] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -66,7 +70,7 @@ const AdminBursaries = () => {
   const load = () => {
     supabase
       .from("bursaries")
-      .select("id,title,description,deadline,county_id,constituency_id,ward_id,created_at,created_by")
+      .select("id,title,description,application_link,deadline,county_id,constituency_id,ward_id,created_at,created_by")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => setList((data as Bursary[]) ?? []));
@@ -87,13 +91,20 @@ const AdminBursaries = () => {
     };
   }, []);
 
+  const isValidUrl = (v: string) => /^https?:\/\/\S+/i.test(v.trim());
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!isValidUrl(applicationLink)) {
+      toast({ title: "Invalid application link", description: "Use a full URL starting with http(s)://", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("bursaries").insert({
       title,
       description,
+      application_link: applicationLink.trim(),
       deadline: deadline || null,
       county_id: geo.county_id,
       constituency_id: geo.constituency_id,
@@ -105,7 +116,7 @@ const AdminBursaries = () => {
       toast({ title: "Couldn't create bursary", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Bursary posted" });
-      setTitle(""); setDescription(""); setDeadline("");
+      setTitle(""); setDescription(""); setDeadline(""); setApplicationLink("");
       if (role !== "super_admin") setGeo(profileGeo);
       load();
     }
@@ -117,16 +128,22 @@ const AdminBursaries = () => {
     setEditing(b);
     setEditDescription(b.description ?? "");
     setEditDeadline(b.deadline ?? "");
+    setEditLink(b.application_link ?? "");
   };
 
   const saveEdit = async () => {
     if (!editing) return;
+    if (!isValidUrl(editLink)) {
+      toast({ title: "Invalid application link", description: "Use a full URL starting with http(s)://", variant: "destructive" });
+      return;
+    }
     setSavingEdit(true);
     const { error } = await supabase
       .from("bursaries")
       .update({
         description: editDescription,
         deadline: editDeadline || null,
+        application_link: editLink.trim(),
       })
       .eq("id", editing.id);
     setSavingEdit(false);
@@ -138,6 +155,24 @@ const AdminBursaries = () => {
       load();
     }
   };
+
+  const softDelete = async (b: Bursary) => {
+    if (!canEdit(b)) return;
+    if (!confirm(`Remove "${b.title}"? Students will no longer see it.`)) return;
+    const { error } = await supabase
+      .from("bursaries")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", b.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Bursary removed" });
+      load();
+    }
+  };
+
+  const scopeLabel = (b: Bursary) =>
+    b.ward_id ? "Ward" : b.constituency_id ? "Constituency" : b.county_id ? "County" : "Open to all";
 
   return (
     <AppShell>
@@ -169,6 +204,19 @@ const AdminBursaries = () => {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label>Application link</Label>
+                <Input
+                  type="url"
+                  placeholder="https://example.org/apply"
+                  value={applicationLink}
+                  onChange={(e) => setApplicationLink(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Students will click "Apply Now" and be taken here in a new tab.
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label>Description</Label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
               </div>
@@ -190,7 +238,7 @@ const AdminBursaries = () => {
           <CardHeader>
             <CardTitle>All bursaries</CardTitle>
             <CardDescription>
-              Title and scope are immutable once posted. You can adjust description and deadline only.
+              Title and scope are immutable once posted. You can adjust description, deadline and link.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,29 +250,48 @@ const AdminBursaries = () => {
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Scope</TableHead>
                     <TableHead>Deadline</TableHead>
-                    <TableHead>Posted</TableHead>
+                    <TableHead>Link</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {list.map((b) => (
                     <TableRow key={b.id}>
-                      <TableCell className="font-medium">{b.title}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-md truncate">
-                        {b.description}
+                      <TableCell className="font-medium align-top">{b.title}</TableCell>
+                      <TableCell className="text-sm align-top max-w-md">
+                        <p className="whitespace-pre-line">{b.description || "—"}</p>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-top">
+                        <Badge variant="secondary">{scopeLabel(b)}</Badge>
+                      </TableCell>
+                      <TableCell className="align-top">
                         {b.deadline ? new Date(b.deadline).toLocaleDateString() : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(b.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {canEdit(b) ? (
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(b)}>
-                            <Pencil className="w-4 h-4 mr-1" /> Edit
+                      <TableCell className="align-top">
+                        {b.application_link ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(b.application_link, "_blank", "noopener,noreferrer")}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" /> Open
                           </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right align-top whitespace-nowrap">
+                        {canEdit(b) ? (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => openEdit(b)}>
+                              <Pencil className="w-4 h-4 mr-1" /> Edit
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => softDelete(b)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
                         ) : (
                           <span className="text-xs text-muted-foreground">Read-only</span>
                         )}
@@ -243,7 +310,7 @@ const AdminBursaries = () => {
           <DialogHeader>
             <DialogTitle>Edit bursary</DialogTitle>
             <DialogDescription>
-              Only the description and deadline can be adjusted. Title and scope are immutable.
+              Title and scope are immutable. Description, deadline and application link can be updated.
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -251,6 +318,15 @@ const AdminBursaries = () => {
               <div className="space-y-2">
                 <Label>Title (locked)</Label>
                 <Input value={editing.title} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Application link</Label>
+                <Input
+                  type="url"
+                  value={editLink}
+                  onChange={(e) => setEditLink(e.target.value)}
+                  placeholder="https://…"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
