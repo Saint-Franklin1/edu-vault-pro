@@ -15,6 +15,7 @@ import AdminBursaries from "./pages/AdminBursaries.tsx";
 import AdminApplications from "./pages/AdminApplications.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
 import AdminRoles from "./pages/AdminRoles.tsx";
+import ChiefDashboard from "./pages/ChiefDashboard.tsx";
 import Verify from "./pages/Verify.tsx";
 import Legal from "./pages/Legal.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/student/qr" element={<ProtectedRoute require="student"><StudentQR /></ProtectedRoute>} />
           <Route path="/student/bursaries" element={<ProtectedRoute require="student"><StudentBursaries /></ProtectedRoute>} />
 
+          <Route path="/chief" element={<ProtectedRoute require="admin"><ChiefDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute require="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/overview" element={<ProtectedRoute require="admin"><SuperAdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/bursaries" element={<ProtectedRoute require="admin"><AdminBursaries /></ProtectedRoute>} />

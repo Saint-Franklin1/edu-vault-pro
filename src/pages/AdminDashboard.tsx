@@ -143,22 +143,14 @@ const AdminDashboard = () => {
     window.open(data.signedUrl, "_blank", "noopener");
   };
 
-  // Decide which approval action this admin can take on this document right now
+  // Super admin is intentionally excluded from approvals (oversight only).
   const nextAction = (d: DocRow): null | "ward" | "constituency" | "county" => {
     if (d.status === "rejected") return null;
+    if (!d.chief_approved) return null; // Chief must approve first (handled in ChiefDashboard)
     if (d.ward_approved && d.constituency_approved && d.county_approved) return null;
-    if (!d.ward_approved) {
-      if (role === "ward_admin" || role === "super_admin") return "ward";
-      return null;
-    }
-    if (!d.constituency_approved) {
-      if (role === "constituency_admin" || role === "super_admin") return "constituency";
-      return null;
-    }
-    if (!d.county_approved) {
-      if (role === "county_admin" || role === "super_admin") return "county";
-      return null;
-    }
+    if (!d.ward_approved) return role === "ward_admin" ? "ward" : null;
+    if (!d.constituency_approved) return role === "constituency_admin" ? "constituency" : null;
+    if (!d.county_approved) return role === "county_admin" ? "county" : null;
     return null;
   };
 
