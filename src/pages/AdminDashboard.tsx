@@ -91,11 +91,15 @@ const AdminDashboard = () => {
   };
 
   const approve = async (d: DocRow, level: "ward" | "constituency" | "county") => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      ward_approved?: boolean;
+      constituency_approved?: boolean;
+      county_approved?: boolean;
+      status?: DocStatus;
+    } = {};
     if (level === "ward") patch.ward_approved = true;
     if (level === "constituency") patch.constituency_approved = true;
     if (level === "county") patch.county_approved = true;
-    // Also bump status to in_queue if still pending so it's visible as in-progress
     if (d.status === "pending") patch.status = "in_queue";
     const { error } = await supabase.from("documents").update(patch).eq("id", d.id);
     if (error) {
