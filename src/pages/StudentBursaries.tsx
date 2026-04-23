@@ -222,14 +222,25 @@ const StudentBursaries = () => {
                         Admin note: {app.review_notes}
                       </p>
                     )}
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {b.application_link && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            window.open(b.application_link!, "_blank", "noopener,noreferrer")
+                          }
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" /> Apply Now (external)
+                        </Button>
+                      )}
                       {!app && (
                         <Button
                           size="sm"
                           onClick={() => openApply(b)}
                           disabled={expired}
                         >
-                          {expired ? "Closed" : "Apply"}
+                          {expired ? "Closed" : "Apply in-app"}
                         </Button>
                       )}
                       {app && (app.status === "pending" || app.status === "under_review") && (
@@ -238,7 +249,7 @@ const StudentBursaries = () => {
                         </Button>
                       )}
                       {app && app.status === "withdrawn" && !expired && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground self-center">
                           You withdrew this application.
                         </span>
                       )}
