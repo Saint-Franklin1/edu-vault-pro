@@ -483,6 +483,7 @@ export type Database = {
         | "constituency_admin"
         | "county_admin"
         | "super_admin"
+        | "chief"
       document_status: "pending" | "in_queue" | "verified" | "rejected"
     }
     CompositeTypes: {
@@ -618,6 +619,7 @@ export const Constants = {
         "constituency_admin",
         "county_admin",
         "super_admin",
+        "chief",
       ],
       document_status: ["pending", "in_queue", "verified", "rejected"],
     },
