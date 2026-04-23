@@ -23,6 +23,7 @@ interface GeoRow {
 }
 
 const PROMOTABLE_ROLES: AppRole[] = [
+  "chief",
   "ward_admin",
   "constituency_admin",
   "county_admin",
@@ -95,16 +96,16 @@ export function AdminPromotionPanel({ onPromoted }: { onPromoted?: () => void })
     }
   }, [role]);
 
-  const showCounty = role === "ward_admin" || role === "constituency_admin" || role === "county_admin";
-  const showConstituency = role === "ward_admin" || role === "constituency_admin";
-  const showWard = role === "ward_admin";
+  const showCounty = role === "ward_admin" || role === "chief" || role === "constituency_admin" || role === "county_admin";
+  const showConstituency = role === "ward_admin" || role === "chief" || role === "constituency_admin";
+  const showWard = role === "ward_admin" || role === "chief";
 
   const isValid = useMemo(() => {
     if (!found || !role) return false;
     if (role === "super_admin") return true;
     if (role === "county_admin") return !!countyId;
     if (role === "constituency_admin") return !!countyId && !!constituencyId;
-    if (role === "ward_admin") return !!countyId && !!constituencyId && !!wardId;
+    if (role === "ward_admin" || role === "chief") return !!countyId && !!constituencyId && !!wardId;
     return false;
   }, [found, role, countyId, constituencyId, wardId]);
 
