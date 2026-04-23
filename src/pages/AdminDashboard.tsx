@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -27,8 +27,20 @@ interface DocRow {
   user_id: string;
   rejection_reason: string | null;
   created_at: string;
+  ward_approved: boolean;
+  constituency_approved: boolean;
+  county_approved: boolean;
   profiles?: { full_name: string | null; email: string | null } | null;
 }
+
+const stageBadge = (d: DocRow) => {
+  if (d.status === "rejected") return { label: "Rejected", variant: "destructive" as const };
+  if (d.county_approved && d.constituency_approved && d.ward_approved)
+    return { label: "Fully Verified", variant: "default" as const };
+  if (d.constituency_approved) return { label: "Constituency Approved", variant: "secondary" as const };
+  if (d.ward_approved) return { label: "Ward Approved", variant: "secondary" as const };
+  return { label: "Pending Ward", variant: "outline" as const };
+};
 
 const AdminDashboard = () => {
   const { user, roles } = useAuth();
@@ -42,7 +54,9 @@ const AdminDashboard = () => {
   const load = () => {
     let q = supabase
       .from("documents")
-      .select("id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at, profiles!inner(full_name,email)")
+      .select(
+        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (statusFilter !== "all") q = q.eq("status", statusFilter);
@@ -76,19 +90,39 @@ const AdminDashboard = () => {
     rejected: docs.filter((d) => d.status === "rejected").length,
   };
 
-  const setStatus = async (id: string, status: DocStatus, reasonText?: string) => {
-    const nowIso = new Date().toISOString();
-    const patch =
-      status === "verified"
-        ? { status, verified_by: user?.id, verified_at: nowIso, rejection_reason: null }
-        : status === "rejected"
-        ? { status, verified_by: user?.id, verified_at: nowIso, rejection_reason: reasonText ?? null }
-        : { status };
-    const { error } = await supabase.from("documents").update(patch).eq("id", id);
+  const approve = async (d: DocRow, level: "ward" | "constituency" | "county") => {
+    const patch: {
+      ward_approved?: boolean;
+      constituency_approved?: boolean;
+      county_approved?: boolean;
+      status?: DocStatus;
+    } = {};
+    if (level === "ward") patch.ward_approved = true;
+    if (level === "constituency") patch.constituency_approved = true;
+    if (level === "county") patch.county_approved = true;
+    if (d.status === "pending") patch.status = "in_queue";
+    const { error } = await supabase.from("documents").update(patch).eq("id", d.id);
+    if (error) {
+      toast({ title: "Approval failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `${level[0].toUpperCase() + level.slice(1)} approval recorded` });
+    }
+  };
+
+  const reject = async (id: string, reasonText: string) => {
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        status: "rejected",
+        verified_by: user?.id,
+        verified_at: new Date().toISOString(),
+        rejection_reason: reasonText,
+      })
+      .eq("id", id);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: `Marked ${status.replace("_", " ")}` });
+      toast({ title: "Document rejected" });
       setRejectionId(null);
       setReason("");
     }
@@ -105,6 +139,25 @@ const AdminDashboard = () => {
     window.open(data.signedUrl, "_blank", "noopener");
   };
 
+  // Decide which approval action this admin can take on this document right now
+  const nextAction = (d: DocRow): null | "ward" | "constituency" | "county" => {
+    if (d.status === "rejected") return null;
+    if (d.ward_approved && d.constituency_approved && d.county_approved) return null;
+    if (!d.ward_approved) {
+      if (role === "ward_admin" || role === "super_admin") return "ward";
+      return null;
+    }
+    if (!d.constituency_approved) {
+      if (role === "constituency_admin" || role === "super_admin") return "constituency";
+      return null;
+    }
+    if (!d.county_approved) {
+      if (role === "county_admin" || role === "super_admin") return "county";
+      return null;
+    }
+    return null;
+  };
+
   return (
     <AppShell>
       <div className="container py-8 space-y-8">
@@ -117,7 +170,7 @@ const AdminDashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-accent" />
-            <span className="text-sm text-muted-foreground">RLS-enforced scope</span>
+            <span className="text-sm text-muted-foreground">RLS-enforced scope · Live updates</span>
           </div>
         </div>
 
@@ -141,7 +194,9 @@ const AdminDashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
             <div>
               <CardTitle>Documents</CardTitle>
-              <CardDescription>Verify or reject each submission.</CardDescription>
+              <CardDescription>
+                Hierarchical approval: Ward → Constituency → County. The system auto-marks Verified when all three approve.
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-sm">Filter</Label>
@@ -172,67 +227,91 @@ const AdminDashboard = () => {
                     <TableHead>Student</TableHead>
                     <TableHead>Document</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Approval stage</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {docs.map((d) => (
-                    <TableRow key={d.id}>
-                      <TableCell>
-                        <div className="font-medium">{d.profiles?.full_name || "—"}</div>
-                        <div className="text-xs text-muted-foreground">{d.profiles?.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{d.title}</div>
-                        <div className="text-xs text-muted-foreground">{d.file_name}</div>
-                        {d.status === "rejected" && d.rejection_reason && (
-                          <div className="text-xs text-destructive mt-1">Reason: {d.rejection_reason}</div>
-                        )}
-                      </TableCell>
-                      <TableCell><StatusBadge status={d.status} /></TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(d.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => view(d.storage_path)}>
-                          View
-                        </Button>
-                        {d.status !== "in_queue" && d.status !== "verified" && (
-                          <Button size="sm" variant="secondary" onClick={() => setStatus(d.id, "in_queue")}>
-                            Queue
+                  {docs.map((d) => {
+                    const stage = stageBadge(d);
+                    const action = nextAction(d);
+                    return (
+                      <TableRow key={d.id}>
+                        <TableCell>
+                          <div className="font-medium">{d.profiles?.full_name || "—"}</div>
+                          <div className="text-xs text-muted-foreground">{d.profiles?.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{d.title}</div>
+                          <div className="text-xs text-muted-foreground">{d.file_name}</div>
+                          {d.status === "rejected" && d.rejection_reason && (
+                            <div className="text-xs text-destructive mt-1">Reason: {d.rejection_reason}</div>
+                          )}
+                        </TableCell>
+                        <TableCell><StatusBadge status={d.status} /></TableCell>
+                        <TableCell>
+                          <Badge variant={stage.variant}>{stage.label}</Badge>
+                          <div className="mt-1 flex gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            <span className={d.ward_approved ? "text-accent font-semibold" : ""}>W</span>
+                            <span>›</span>
+                            <span className={d.constituency_approved ? "text-accent font-semibold" : ""}>C</span>
+                            <span>›</span>
+                            <span className={d.county_approved ? "text-accent font-semibold" : ""}>Co</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(d.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right space-x-1 whitespace-nowrap">
+                          <Button size="sm" variant="ghost" onClick={() => view(d.storage_path)}>
+                            View
                           </Button>
-                        )}
-                        {d.status !== "verified" && (
-                          <Button size="sm" onClick={() => setStatus(d.id, "verified")}>
-                            <CheckCircle2 className="w-4 h-4" /> Verify
-                          </Button>
-                        )}
-                        {d.status !== "rejected" && (
-                          rejectionId === d.id ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Input
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                placeholder="Reason"
-                                className="w-40 inline-flex"
-                              />
-                              <Button size="sm" variant="destructive" onClick={() => setStatus(d.id, "rejected", reason)} disabled={!reason}>
-                                Confirm
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => { setRejectionId(null); setReason(""); }}>
-                                Cancel
-                              </Button>
-                            </span>
-                          ) : (
-                            <Button size="sm" variant="destructive" onClick={() => setRejectionId(d.id)}>
-                              <XCircle className="w-4 h-4" /> Reject
+                          {action && (
+                            <Button size="sm" onClick={() => approve(d, action)}>
+                              <CheckCircle2 className="w-4 h-4" />{" "}
+                              {action === "ward"
+                                ? "Approve (Ward)"
+                                : action === "constituency"
+                                ? "Approve (Constituency)"
+                                : "Approve (County)"}
                             </Button>
-                          )
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          )}
+                          {d.status !== "rejected" && d.status !== "verified" && (
+                            rejectionId === d.id ? (
+                              <span className="inline-flex items-center gap-1">
+                                <Input
+                                  value={reason}
+                                  onChange={(e) => setReason(e.target.value)}
+                                  placeholder="Reason"
+                                  className="w-40 inline-flex"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => reject(d.id, reason)}
+                                  disabled={!reason}
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => { setRejectionId(null); setReason(""); }}
+                                >
+                                  Cancel
+                                </Button>
+                              </span>
+                            ) : (
+                              <Button size="sm" variant="destructive" onClick={() => setRejectionId(d.id)}>
+                                <XCircle className="w-4 h-4" /> Reject
+                              </Button>
+                            )
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
