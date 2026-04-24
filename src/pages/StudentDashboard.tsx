@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { GeoSelector, GeoValue } from "@/components/GeoSelector";
-import { StatusBadge, DocStatus } from "@/components/StatusBadge";
+import { StatusBadge, DocStatus, ApprovalStage } from "@/components/StatusBadge";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Upload as UploadIcon, FileText } from "lucide-react";
 
@@ -26,6 +26,11 @@ interface Doc {
   rejection_reason: string | null;
   created_at: string;
   storage_path: string;
+  chief_approved: boolean;
+  chief_category: string | null;
+  ward_approved: boolean;
+  constituency_approved: boolean;
+  county_approved: boolean;
 }
 
 const StudentDashboard = () => {
