@@ -29,6 +29,7 @@ interface DocRow {
   created_at: string;
   chief_approved: boolean;
   chief_category: string | null;
+  recommendation_letter_url: string | null;
   ward_approved: boolean;
   constituency_approved: boolean;
   county_approved: boolean;
