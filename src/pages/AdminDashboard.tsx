@@ -60,7 +60,7 @@ const AdminDashboard = () => {
     let q = supabase
       .from("documents")
       .select(
-        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
+        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,recommendation_letter_url,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
