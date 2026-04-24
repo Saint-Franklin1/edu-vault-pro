@@ -63,7 +63,9 @@ const StudentDashboard = () => {
     if (!user) return;
     supabase
       .from("documents")
-      .select("id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path")
+      .select(
+        "id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path,chief_approved,chief_category,ward_approved,constituency_approved,county_approved"
+      )
       .eq("user_id", user.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
