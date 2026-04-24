@@ -275,6 +275,16 @@ const AdminDashboard = () => {
                           <Button size="sm" variant="ghost" onClick={() => view(d.storage_path)}>
                             View
                           </Button>
+                          {d.recommendation_letter_url && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => viewLetter(d.recommendation_letter_url!)}
+                              title="Chief's recommendation letter"
+                            >
+                              <FileText className="w-4 h-4" /> Letter
+                            </Button>
+                          )}
                           {action && (
                             <Button size="sm" onClick={() => approve(d, action)}>
                               <CheckCircle2 className="w-4 h-4" />{" "}
