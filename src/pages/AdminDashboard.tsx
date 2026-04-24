@@ -144,6 +144,17 @@ const AdminDashboard = () => {
     window.open(data.signedUrl, "_blank", "noopener");
   };
 
+  const viewLetter = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("chief-letters")
+      .createSignedUrl(path, 60);
+    if (error || !data) {
+      toast({ title: "Couldn't open letter", description: error?.message, variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
   // Super admin is intentionally excluded from approvals (oversight only).
   const nextAction = (d: DocRow): null | "ward" | "constituency" | "county" => {
     if (d.status === "rejected") return null;
