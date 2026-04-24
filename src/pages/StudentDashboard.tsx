@@ -284,6 +284,7 @@ const StudentDashboard = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>File</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Approval stage</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -296,9 +297,15 @@ const StudentDashboard = () => {
                         {d.status === "rejected" && d.rejection_reason && (
                           <p className="text-xs text-destructive mt-1">Reason: {d.rejection_reason}</p>
                         )}
+                        {d.chief_category && (
+                          <p className="text-xs text-muted-foreground mt-1 capitalize">
+                            Category: {d.chief_category}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{d.file_name}</TableCell>
                       <TableCell><StatusBadge status={d.status} /></TableCell>
+                      <TableCell><ApprovalStage d={d} /></TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(d.created_at).toLocaleDateString()}
                       </TableCell>
