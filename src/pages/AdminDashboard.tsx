@@ -29,6 +29,7 @@ interface DocRow {
   created_at: string;
   chief_approved: boolean;
   chief_category: string | null;
+  recommendation_letter_url: string | null;
   ward_approved: boolean;
   constituency_approved: boolean;
   county_approved: boolean;
@@ -59,7 +60,7 @@ const AdminDashboard = () => {
     let q = supabase
       .from("documents")
       .select(
-        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
+        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,recommendation_letter_url,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -138,6 +139,17 @@ const AdminDashboard = () => {
       .createSignedUrl(path, 60);
     if (error || !data) {
       toast({ title: "Couldn't open file", description: error?.message, variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
+  const viewLetter = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("chief-letters")
+      .createSignedUrl(path, 60);
+    if (error || !data) {
+      toast({ title: "Couldn't open letter", description: error?.message, variant: "destructive" });
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener");
@@ -263,6 +275,16 @@ const AdminDashboard = () => {
                           <Button size="sm" variant="ghost" onClick={() => view(d.storage_path)}>
                             View
                           </Button>
+                          {d.recommendation_letter_url && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => viewLetter(d.recommendation_letter_url!)}
+                              title="Chief's recommendation letter"
+                            >
+                              <FileText className="w-4 h-4" /> Letter
+                            </Button>
+                          )}
                           {action && (
                             <Button size="sm" onClick={() => approve(d, action)}>
                               <CheckCircle2 className="w-4 h-4" />{" "}

@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { GeoSelector, GeoValue } from "@/components/GeoSelector";
-import { StatusBadge, DocStatus } from "@/components/StatusBadge";
+import { StatusBadge, DocStatus, ApprovalStage } from "@/components/StatusBadge";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Upload as UploadIcon, FileText } from "lucide-react";
 
@@ -26,6 +26,11 @@ interface Doc {
   rejection_reason: string | null;
   created_at: string;
   storage_path: string;
+  chief_approved: boolean;
+  chief_category: string | null;
+  ward_approved: boolean;
+  constituency_approved: boolean;
+  county_approved: boolean;
 }
 
 const StudentDashboard = () => {
@@ -58,7 +63,9 @@ const StudentDashboard = () => {
     if (!user) return;
     supabase
       .from("documents")
-      .select("id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path")
+      .select(
+        "id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path,chief_approved,chief_category,ward_approved,constituency_approved,county_approved"
+      )
       .eq("user_id", user.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
@@ -277,6 +284,7 @@ const StudentDashboard = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>File</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Approval stage</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -289,9 +297,15 @@ const StudentDashboard = () => {
                         {d.status === "rejected" && d.rejection_reason && (
                           <p className="text-xs text-destructive mt-1">Reason: {d.rejection_reason}</p>
                         )}
+                        {d.chief_category && (
+                          <p className="text-xs text-muted-foreground mt-1 capitalize">
+                            Category: {d.chief_category}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{d.file_name}</TableCell>
                       <TableCell><StatusBadge status={d.status} /></TableCell>
+                      <TableCell><ApprovalStage d={d} /></TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(d.created_at).toLocaleDateString()}
                       </TableCell>
