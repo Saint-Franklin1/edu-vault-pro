@@ -106,10 +106,24 @@ const StudentDashboard = () => {
   }, [user]);
 
   const profileComplete =
-    !!profile?.county_id && !!profile?.constituency_id && !!profile?.ward_id;
+    !!persistedGeo.county_id && !!persistedGeo.constituency_id && !!persistedGeo.ward_id;
+
+  const hasUnsavedGeoChanges =
+    profile !== null &&
+    (profile.county_id !== persistedGeo.county_id ||
+      profile.constituency_id !== persistedGeo.constituency_id ||
+      profile.ward_id !== persistedGeo.ward_id);
 
   const saveProfile = async () => {
     if (!user || !profile) return;
+    if (!profile.county_id || !profile.constituency_id || !profile.ward_id) {
+      toast({
+        title: "Select your full location",
+        description: "County, constituency and ward are all required.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSavingProfile(true);
     const { error } = await supabase
       .from("profiles")
@@ -126,6 +140,11 @@ const StudentDashboard = () => {
     if (error) {
       toast({ title: "Couldn't save profile", description: error.message, variant: "destructive" });
     } else {
+      setPersistedGeo({
+        county_id: profile.county_id,
+        constituency_id: profile.constituency_id,
+        ward_id: profile.ward_id,
+      });
       toast({ title: "Profile saved" });
     }
   };
