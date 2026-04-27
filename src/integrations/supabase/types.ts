@@ -457,6 +457,23 @@ export type Database = {
           ward_id: string
         }[]
       }
+      get_public_profile: {
+        Args: { _user_id: string }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
+      get_public_verified_documents: {
+        Args: { _user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          mime_type: string
+          title: string
+          verified_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
