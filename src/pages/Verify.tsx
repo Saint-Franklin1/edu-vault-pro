@@ -23,16 +23,11 @@ const Verify = () => {
   useEffect(() => {
     if (!user_id) return;
     (async () => {
-      const [{ data: profile }, { data: documents }] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", user_id).maybeSingle(),
-        supabase
-          .from("documents")
-          .select("id,title,verified_at,created_at,mime_type")
-          .eq("user_id", user_id)
-          .eq("status", "verified")
-          .is("deleted_at", null)
-          .order("verified_at", { ascending: false }),
+      const [{ data: profileRows }, { data: documents }] = await Promise.all([
+        supabase.rpc("get_public_profile", { _user_id: user_id }),
+        supabase.rpc("get_public_verified_documents", { _user_id: user_id }),
       ]);
+      const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows;
       setName(profile?.full_name ?? null);
       setDocs((documents as Doc[]) ?? []);
       setLoading(false);
