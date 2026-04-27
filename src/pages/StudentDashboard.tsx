@@ -224,12 +224,16 @@ const StudentDashboard = () => {
           <p className="text-muted-foreground">Upload, track and share verified documents.</p>
         </div>
 
-        {!profileComplete && (
+        {(!profileComplete || hasUnsavedGeoChanges) && (
           <Card className="border-warning shadow-card">
             <CardHeader>
-              <CardTitle>Complete your profile</CardTitle>
+              <CardTitle>
+                {profileComplete ? "Update your profile" : "Complete your profile"}
+              </CardTitle>
               <CardDescription>
-                Select your county, constituency and ward so the right administrator can verify your documents.
+                {profileComplete
+                  ? "You have unsaved changes. Click Save profile to apply them before uploading."
+                  : "Select your county, constituency and ward so the right administrator can verify your documents. Click Save profile when done."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -260,14 +264,22 @@ const StudentDashboard = () => {
                   setProfile((p) => ({ ...(p ?? { full_name: "", phone: "" }), ...v }))
                 }
               />
-              <Button onClick={saveProfile} disabled={savingProfile}>
+              <Button
+                onClick={saveProfile}
+                disabled={
+                  savingProfile ||
+                  !profile?.county_id ||
+                  !profile?.constituency_id ||
+                  !profile?.ward_id
+                }
+              >
                 {savingProfile ? "Saving…" : "Save profile"}
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {profileComplete && (
+        {profileComplete && !hasUnsavedGeoChanges && (
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Upload a document</CardTitle>
