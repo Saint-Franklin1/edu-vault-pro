@@ -42,6 +42,13 @@ const StudentDashboard = () => {
     constituency_id: string | null;
     ward_id: string | null;
   } | null>(null);
+  // Tracks the LAST PERSISTED geo state from the server so we don't hide the
+  // profile card based on unsaved local dropdown selections.
+  const [persistedGeo, setPersistedGeo] = useState<{
+    county_id: string | null;
+    constituency_id: string | null;
+    ward_id: string | null;
+  }>({ county_id: null, constituency_id: null, ward_id: null });
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -56,7 +63,16 @@ const StudentDashboard = () => {
       .select("full_name,phone,county_id,constituency_id,ward_id")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => setProfile(data ?? { full_name: "", phone: "", county_id: null, constituency_id: null, ward_id: null }));
+      .then(({ data }) => {
+        setProfile(
+          data ?? { full_name: "", phone: "", county_id: null, constituency_id: null, ward_id: null }
+        );
+        setPersistedGeo({
+          county_id: data?.county_id ?? null,
+          constituency_id: data?.constituency_id ?? null,
+          ward_id: data?.ward_id ?? null,
+        });
+      });
   }, [user]);
 
   const loadDocs = () => {
