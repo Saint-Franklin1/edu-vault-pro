@@ -42,6 +42,13 @@ const StudentDashboard = () => {
     constituency_id: string | null;
     ward_id: string | null;
   } | null>(null);
+  // Tracks the LAST PERSISTED geo state from the server so we don't hide the
+  // profile card based on unsaved local dropdown selections.
+  const [persistedGeo, setPersistedGeo] = useState<{
+    county_id: string | null;
+    constituency_id: string | null;
+    ward_id: string | null;
+  }>({ county_id: null, constituency_id: null, ward_id: null });
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -56,7 +63,16 @@ const StudentDashboard = () => {
       .select("full_name,phone,county_id,constituency_id,ward_id")
       .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => setProfile(data ?? { full_name: "", phone: "", county_id: null, constituency_id: null, ward_id: null }));
+      .then(({ data }) => {
+        setProfile(
+          data ?? { full_name: "", phone: "", county_id: null, constituency_id: null, ward_id: null }
+        );
+        setPersistedGeo({
+          county_id: data?.county_id ?? null,
+          constituency_id: data?.constituency_id ?? null,
+          ward_id: data?.ward_id ?? null,
+        });
+      });
   }, [user]);
 
   const loadDocs = () => {
@@ -90,10 +106,24 @@ const StudentDashboard = () => {
   }, [user]);
 
   const profileComplete =
-    !!profile?.county_id && !!profile?.constituency_id && !!profile?.ward_id;
+    !!persistedGeo.county_id && !!persistedGeo.constituency_id && !!persistedGeo.ward_id;
+
+  const hasUnsavedGeoChanges =
+    profile !== null &&
+    (profile.county_id !== persistedGeo.county_id ||
+      profile.constituency_id !== persistedGeo.constituency_id ||
+      profile.ward_id !== persistedGeo.ward_id);
 
   const saveProfile = async () => {
     if (!user || !profile) return;
+    if (!profile.county_id || !profile.constituency_id || !profile.ward_id) {
+      toast({
+        title: "Select your full location",
+        description: "County, constituency and ward are all required.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSavingProfile(true);
     const { error } = await supabase
       .from("profiles")
@@ -110,6 +140,11 @@ const StudentDashboard = () => {
     if (error) {
       toast({ title: "Couldn't save profile", description: error.message, variant: "destructive" });
     } else {
+      setPersistedGeo({
+        county_id: profile.county_id,
+        constituency_id: profile.constituency_id,
+        ward_id: profile.ward_id,
+      });
       toast({ title: "Profile saved" });
     }
   };
@@ -189,12 +224,16 @@ const StudentDashboard = () => {
           <p className="text-muted-foreground">Upload, track and share verified documents.</p>
         </div>
 
-        {!profileComplete && (
+        {(!profileComplete || hasUnsavedGeoChanges) && (
           <Card className="border-warning shadow-card">
             <CardHeader>
-              <CardTitle>Complete your profile</CardTitle>
+              <CardTitle>
+                {profileComplete ? "Update your profile" : "Complete your profile"}
+              </CardTitle>
               <CardDescription>
-                Select your county, constituency and ward so the right administrator can verify your documents.
+                {profileComplete
+                  ? "You have unsaved changes. Click Save profile to apply them before uploading."
+                  : "Select your county, constituency and ward so the right administrator can verify your documents. Click Save profile when done."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -225,14 +264,22 @@ const StudentDashboard = () => {
                   setProfile((p) => ({ ...(p ?? { full_name: "", phone: "" }), ...v }))
                 }
               />
-              <Button onClick={saveProfile} disabled={savingProfile}>
+              <Button
+                onClick={saveProfile}
+                disabled={
+                  savingProfile ||
+                  !profile?.county_id ||
+                  !profile?.constituency_id ||
+                  !profile?.ward_id
+                }
+              >
                 {savingProfile ? "Saving…" : "Save profile"}
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {profileComplete && (
+        {profileComplete && !hasUnsavedGeoChanges && (
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Upload a document</CardTitle>
