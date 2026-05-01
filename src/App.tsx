@@ -15,6 +15,7 @@ import AdminBursaries from "./pages/AdminBursaries.tsx";
 import AdminApplications from "./pages/AdminApplications.tsx";
 import AdminAudit from "./pages/AdminAudit.tsx";
 import AdminRoles from "./pages/AdminRoles.tsx";
+import SuperAdminHandover from "./pages/SuperAdminHandover.tsx";
 import ChiefDashboard from "./pages/ChiefDashboard.tsx";
 import Verify from "./pages/Verify.tsx";
 import Legal from "./pages/Legal.tsx";
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/admin/applications" element={<ProtectedRoute require="admin"><AdminApplications /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute require="admin"><AdminAudit /></ProtectedRoute>} />
           <Route path="/admin/roles" element={<ProtectedRoute require="admin"><AdminRoles /></ProtectedRoute>} />
+          <Route path="/admin/handover" element={<ProtectedRoute require="admin"><SuperAdminHandover /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

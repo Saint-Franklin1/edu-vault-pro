@@ -161,6 +161,7 @@ const SuperAdminDashboard = () => {
         <div className="flex gap-2 flex-wrap">
           <Button asChild><Link to="/admin/roles">Manage roles & admins</Link></Button>
           <Button asChild variant="secondary"><Link to="/admin">Verify documents</Link></Button>
+          <Button asChild variant="outline"><Link to="/admin/handover">Hand over super admin</Link></Button>
           <Button asChild variant="outline"><Link to="/admin/bursaries">Post bursary</Link></Button>
           <Button asChild variant="ghost"><Link to="/admin/audit">Full audit log</Link></Button>
         </div>

@@ -220,6 +220,7 @@ export type Database = {
           county_approved_by: string | null
           created_at: string
           deleted_at: string | null
+          document_type: string | null
           file_name: string | null
           file_size: number | null
           id: string
@@ -251,6 +252,7 @@ export type Database = {
           county_approved_by?: string | null
           created_at?: string
           deleted_at?: string | null
+          document_type?: string | null
           file_name?: string | null
           file_size?: number | null
           id?: string
@@ -282,6 +284,7 @@ export type Database = {
           county_approved_by?: string | null
           created_at?: string
           deleted_at?: string | null
+          document_type?: string | null
           file_name?: string | null
           file_size?: number | null
           id?: string
@@ -382,6 +385,63 @@ export type Database = {
           },
         ]
       }
+      super_admin_handovers: {
+        Row: {
+          ai_match_score: number | null
+          ai_reasoning: string | null
+          completed_at: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          initiated_by: string
+          national_id_number: string
+          national_id_photo_path: string | null
+          new_user_id: string | null
+          phone: string
+          rejection_reason: string | null
+          selfie_photo_path: string | null
+          status: Database["public"]["Enums"]["handover_status"]
+          updated_at: string
+        }
+        Insert: {
+          ai_match_score?: number | null
+          ai_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          initiated_by: string
+          national_id_number: string
+          national_id_photo_path?: string | null
+          new_user_id?: string | null
+          phone: string
+          rejection_reason?: string | null
+          selfie_photo_path?: string | null
+          status?: Database["public"]["Enums"]["handover_status"]
+          updated_at?: string
+        }
+        Update: {
+          ai_match_score?: number | null
+          ai_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          initiated_by?: string
+          national_id_number?: string
+          national_id_photo_path?: string | null
+          new_user_id?: string | null
+          phone?: string
+          rejection_reason?: string | null
+          selfie_photo_path?: string | null
+          status?: Database["public"]["Enums"]["handover_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -440,6 +500,10 @@ export type Database = {
       admin_can_access_user: {
         Args: { _target_user: string }
         Returns: boolean
+      }
+      finalize_super_admin_handover: {
+        Args: { _handover_id: string; _new_user: string }
+        Returns: undefined
       }
       find_user_by_email: {
         Args: { _email: string }
@@ -520,6 +584,12 @@ export type Database = {
         | "super_admin"
         | "chief"
       document_status: "pending" | "in_queue" | "verified" | "rejected"
+      handover_status:
+        | "pending_email_verification"
+        | "pending_ai_review"
+        | "approved"
+        | "rejected"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -657,6 +727,13 @@ export const Constants = {
         "chief",
       ],
       document_status: ["pending", "in_queue", "verified", "rejected"],
+      handover_status: [
+        "pending_email_verification",
+        "pending_ai_review",
+        "approved",
+        "rejected",
+        "expired",
+      ],
     },
   },
 } as const
