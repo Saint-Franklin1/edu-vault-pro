@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { GeoSelector, GeoValue } from "@/components/GeoSelector";
 import { StatusBadge, DocStatus, ApprovalStage } from "@/components/StatusBadge";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +19,18 @@ import { Trash2, Upload as UploadIcon, FileText } from "lucide-react";
 
 const ALLOWED_MIME = ["application/pdf", "image/png", "image/jpeg"];
 const MAX_SIZE = 5 * 1024 * 1024;
+
+const DOCUMENT_TYPES: { value: string; label: string }[] = [
+  { value: "kcpe", label: "KCPE Certificate" },
+  { value: "kcse", label: "KCSE Certificate" },
+  { value: "birth_certificate", label: "Birth Certificate" },
+  { value: "national_id", label: "National ID" },
+  { value: "fee_statement", label: "Fee Statement" },
+  { value: "admission_letter", label: "Admission Letter" },
+  { value: "transcript", label: "Academic Transcript" },
+  { value: "recommendation", label: "Recommendation Letter" },
+  { value: "other", label: "Other" },
+];
 
 interface Doc {
   id: string;
