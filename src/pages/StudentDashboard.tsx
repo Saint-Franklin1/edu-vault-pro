@@ -168,6 +168,10 @@ const StudentDashboard = () => {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !file) return;
+    if (!docType) {
+      toast({ title: "Select document type", description: "Choose what kind of document this is.", variant: "destructive" });
+      return;
+    }
     if (!ALLOWED_MIME.includes(file.type)) {
       toast({ title: "Invalid file type", description: "Allowed: PDF, PNG, JPEG", variant: "destructive" });
       return;
@@ -190,6 +194,7 @@ const StudentDashboard = () => {
       toast({ title: "Upload failed", description: upErr.message, variant: "destructive" });
       return;
     }
+    const hadPrior = docs.some((d) => (d as Doc & { document_type?: string }).document_type === docType);
     const { error: insErr } = await supabase.from("documents").insert({
       user_id: user.id,
       title: title || file.name,
@@ -197,15 +202,21 @@ const StudentDashboard = () => {
       file_name: file.name,
       file_size: file.size,
       mime_type: file.type,
+      document_type: docType,
     });
     setUploading(false);
     if (insErr) {
       toast({ title: "Couldn't save document", description: insErr.message, variant: "destructive" });
     } else {
-      toast({ title: "Uploaded — pending verification" });
+      toast({
+        title: hadPrior ? "New version uploaded" : "Uploaded — pending verification",
+        description: hadPrior ? "The previous version was replaced and approvals reset." : undefined,
+      });
       setFile(null);
       setTitle("");
-      (document.getElementById("file-input") as HTMLInputElement | null)?.value && ((document.getElementById("file-input") as HTMLInputElement).value = "");
+      setDocType("");
+      const fi = document.getElementById("file-input") as HTMLInputElement | null;
+      if (fi) fi.value = "";
     }
   };
 
@@ -302,7 +313,20 @@ const StudentDashboard = () => {
               <CardDescription>PDF, PNG or JPEG. Max 5MB.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpload} className="grid gap-4 md:grid-cols-3 items-end">
+              <form onSubmit={handleUpload} className="grid gap-4 md:grid-cols-4 items-end">
+                <div className="space-y-2 md:col-span-1">
+                  <Label htmlFor="doc-type">Document type</Label>
+                  <Select value={docType} onValueChange={setDocType}>
+                    <SelectTrigger id="doc-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DOCUMENT_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2 md:col-span-1">
                   <Label htmlFor="doc-title">Title</Label>
                   <Input
@@ -321,10 +345,13 @@ const StudentDashboard = () => {
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                 </div>
-                <Button type="submit" disabled={!file || uploading}>
+                <Button type="submit" disabled={!file || !docType || uploading}>
                   <UploadIcon className="w-4 h-4" /> {uploading ? "Uploading…" : "Upload"}
                 </Button>
               </form>
+              <p className="text-xs text-muted-foreground mt-3">
+                Uploading the same document type again replaces the previous file and resets all approvals.
+              </p>
             </CardContent>
           </Card>
         )}
