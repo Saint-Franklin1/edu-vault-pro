@@ -68,6 +68,7 @@ const StudentDashboard = () => {
 
   const [docs, setDocs] = useState<Doc[]>([]);
   const [title, setTitle] = useState("");
+  const [docType, setDocType] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
