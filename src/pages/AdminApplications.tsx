@@ -157,7 +157,13 @@ const AdminApplications = () => {
   const transitionTo = async (stage: Stage) => {
     if (!reviewing) return;
     setBusy(true);
-    const update: Record<string, unknown> = {
+    const update: {
+      current_stage: Stage;
+      review_notes: string | null;
+      recommended_amount?: number;
+      approved_amount?: number;
+      rejection_reason?: string;
+    } = {
       current_stage: stage,
       review_notes: notes || null,
     };
