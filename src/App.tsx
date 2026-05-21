@@ -43,12 +43,15 @@ const App = () => (
           <Route path="/student" element={<ProtectedRoute require="student"><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/qr" element={<ProtectedRoute require="student"><StudentQR /></ProtectedRoute>} />
           <Route path="/student/bursaries" element={<ProtectedRoute require="student"><StudentBursaries /></ProtectedRoute>} />
+          <Route path="/student/applications/:id" element={<ProtectedRoute require="student"><StudentApplicationDetail /></ProtectedRoute>} />
 
           <Route path="/chief" element={<ProtectedRoute require="admin"><ChiefDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute require="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/overview" element={<ProtectedRoute require="admin"><SuperAdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/bursaries" element={<ProtectedRoute require="admin"><AdminBursaries /></ProtectedRoute>} />
           <Route path="/admin/applications" element={<ProtectedRoute require="admin"><AdminApplications /></ProtectedRoute>} />
+          <Route path="/admin/disbursements" element={<ProtectedRoute require="admin"><AdminDisbursements /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute require="admin"><AdminReports /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute require="admin"><AdminAudit /></ProtectedRoute>} />
           <Route path="/admin/roles" element={<ProtectedRoute require="admin"><AdminRoles /></ProtectedRoute>} />
           <Route path="/admin/handover" element={<ProtectedRoute require="admin"><SuperAdminHandover /></ProtectedRoute>} />
