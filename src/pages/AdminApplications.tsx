@@ -101,13 +101,12 @@ const AdminApplications = () => {
       .order("created_at", { ascending: false });
     if (stageFilter !== "all") query = query.eq("current_stage", stageFilter);
     const { data } = await query;
-    if (!data) { setItems([]); return; }
-    const ids = Array.from(new Set(data.map((r: { student_id: string }) => r.student_id)));
+    const rows = (data as unknown as ApplicationRow[]) ?? [];
+    if (rows.length === 0) { setItems([]); return; }
+    const ids = Array.from(new Set(rows.map((r) => r.student_id)));
     const { data: profs } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
     const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    setItems((data as unknown as ApplicationRow[]).map((r) => ({
-      ...r, profiles: profMap.get(r.student_id) ?? null,
-    })));
+    setItems(rows.map((r) => ({ ...r, profiles: profMap.get(r.student_id) ?? null })));
   };
 
   useEffect(() => {
