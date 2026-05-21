@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_review_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          amount_recommended: number | null
+          application_id: string
+          created_at: string
+          from_stage: Database["public"]["Enums"]["application_stage"] | null
+          id: string
+          notes: string | null
+          to_stage: Database["public"]["Enums"]["application_stage"]
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          amount_recommended?: number | null
+          application_id: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["application_stage"] | null
+          id?: string
+          notes?: string | null
+          to_stage: Database["public"]["Enums"]["application_stage"]
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          amount_recommended?: number | null
+          application_id?: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["application_stage"] | null
+          id?: string
+          notes?: string | null
+          to_stage?: Database["public"]["Enums"]["application_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_review_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -113,40 +157,130 @@ export type Database = {
       }
       bursary_applications: {
         Row: {
+          account_name: string | null
+          account_number: string | null
+          admission_number: string | null
+          amount_requested: number | null
+          approved_amount: number | null
+          bank_branch: string | null
+          bank_name: string | null
           bursary_id: string
+          course: string | null
           created_at: string
+          current_stage: Database["public"]["Enums"]["application_stage"]
+          declaration_signed_at: string | null
+          expected_completion_year: number | null
+          fee_structure_doc_id: string | null
+          guardian_name: string | null
+          guardian_occupation: string | null
+          guardian_relationship: string | null
+          has_disability: boolean | null
+          household_income_bracket: string | null
           id: string
+          institution_name: string | null
           message: string | null
+          mpesa_number: string | null
+          other_fees: number | null
+          parents_status: string | null
+          recommended_amount: number | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          siblings_in_school: number | null
           status: string
           student_id: string
+          study_level: string | null
+          tuition_required: number | null
           updated_at: string
+          upkeep_required: number | null
+          year_of_study: number | null
         }
         Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          admission_number?: string | null
+          amount_requested?: number | null
+          approved_amount?: number | null
+          bank_branch?: string | null
+          bank_name?: string | null
           bursary_id: string
+          course?: string | null
           created_at?: string
+          current_stage?: Database["public"]["Enums"]["application_stage"]
+          declaration_signed_at?: string | null
+          expected_completion_year?: number | null
+          fee_structure_doc_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
+          guardian_relationship?: string | null
+          has_disability?: boolean | null
+          household_income_bracket?: string | null
           id?: string
+          institution_name?: string | null
           message?: string | null
+          mpesa_number?: string | null
+          other_fees?: number | null
+          parents_status?: string | null
+          recommended_amount?: number | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          siblings_in_school?: number | null
           status?: string
           student_id: string
+          study_level?: string | null
+          tuition_required?: number | null
           updated_at?: string
+          upkeep_required?: number | null
+          year_of_study?: number | null
         }
         Update: {
+          account_name?: string | null
+          account_number?: string | null
+          admission_number?: string | null
+          amount_requested?: number | null
+          approved_amount?: number | null
+          bank_branch?: string | null
+          bank_name?: string | null
           bursary_id?: string
+          course?: string | null
           created_at?: string
+          current_stage?: Database["public"]["Enums"]["application_stage"]
+          declaration_signed_at?: string | null
+          expected_completion_year?: number | null
+          fee_structure_doc_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
+          guardian_relationship?: string | null
+          has_disability?: boolean | null
+          household_income_bracket?: string | null
           id?: string
+          institution_name?: string | null
           message?: string | null
+          mpesa_number?: string | null
+          other_fees?: number | null
+          parents_status?: string | null
+          recommended_amount?: number | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          siblings_in_school?: number | null
           status?: string
           student_id?: string
+          study_level?: string | null
+          tuition_required?: number | null
           updated_at?: string
+          upkeep_required?: number | null
+          year_of_study?: number | null
         }
         Relationships: [
           {
@@ -204,6 +338,53 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      disbursements: {
+        Row: {
+          amount: number
+          application_id: string
+          channel: string
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string
+          receipt_path: string | null
+          recorded_by: string
+          reference_number: string
+        }
+        Insert: {
+          amount: number
+          application_id: string
+          channel: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          receipt_path?: string | null
+          recorded_by: string
+          reference_number: string
+        }
+        Update: {
+          amount?: number
+          application_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          receipt_path?: string | null
+          recorded_by?: string
+          reference_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disbursements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -565,6 +746,51 @@ export type Database = {
         }
         Returns: undefined
       }
+      report_application_summary: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          approved: number
+          avg_disbursement: number
+          disbursed: number
+          funds_approved: number
+          funds_disbursed: number
+          funds_requested: number
+          pending: number
+          rejected: number
+          total_applications: number
+        }[]
+      }
+      report_by_program: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          applicants: number
+          approved: number
+          bursary_id: string
+          disbursed_amount: number
+          rejected: number
+          title: string
+        }[]
+      }
+      report_disbursements: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          amount: number
+          application_id: string
+          bursary_title: string
+          channel: string
+          disbursement_id: string
+          paid_at: string
+          reference_number: string
+          student_name: string
+        }[]
+      }
+      report_rejections_by_reason: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          count: number
+          reason: string
+        }[]
+      }
       set_admin_status: {
         Args: {
           _reason: string
@@ -583,6 +809,14 @@ export type Database = {
         | "county_admin"
         | "super_admin"
         | "chief"
+      application_stage:
+        | "submitted"
+        | "ward_reviewed"
+        | "constituency_reviewed"
+        | "county_approved"
+        | "disbursed"
+        | "rejected"
+        | "withdrawn"
       document_status: "pending" | "in_queue" | "verified" | "rejected"
       handover_status:
         | "pending_email_verification"
@@ -725,6 +959,15 @@ export const Constants = {
         "county_admin",
         "super_admin",
         "chief",
+      ],
+      application_stage: [
+        "submitted",
+        "ward_reviewed",
+        "constituency_reviewed",
+        "county_approved",
+        "disbursed",
+        "rejected",
+        "withdrawn",
       ],
       document_status: ["pending", "in_queue", "verified", "rejected"],
       handover_status: [
