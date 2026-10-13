@@ -15,24 +15,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navItems = user
     ? admin
-      ? role === "chief"
-        ? [
-            { to: "/chief", label: "Chief queue" },
-            { to: "/admin/bursaries", label: "Bursaries" },
-          ]
-        : [
-            ...(role === "super_admin" ? [{ to: "/admin/overview", label: "Overview" }] : []),
-            { to: "/admin", label: "Dashboard" },
-            { to: "/admin/bursaries", label: "Bursaries" },
-            { to: "/admin/applications", label: "Applications" },
-            ...(role === "county_admin" || role === "super_admin"
-              ? [{ to: "/admin/disbursements", label: "Disbursements" }] : []),
-            { to: "/admin/reports", label: "Reports" },
-            ...(role === "super_admin" ? [
-              { to: "/admin/roles", label: "Roles" },
-              { to: "/admin/audit", label: "Audit" },
-            ] : []),
-          ]
+      ? [
+          ...(role === "super_admin" ? [{ to: "/admin/overview", label: "Overview" }] : []),
+          { to: "/admin", label: "Verification" },
+          { to: "/admin/bursaries", label: "Bursaries" },
+          { to: "/admin/applications", label: "Applications" },
+          ...(role === "super_admin" ? [
+            { to: "/admin/roles", label: "Roles" },
+            { to: "/admin/audit", label: "Audit" },
+          ] : []),
+        ]
       : [
           { to: "/student", label: "Documents" },
           { to: "/student/bursaries", label: "Bursaries" },

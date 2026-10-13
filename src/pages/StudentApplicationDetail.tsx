@@ -54,9 +54,9 @@ interface Disbursement {
 
 const STAGE_LABEL: Record<Stage, string> = {
   submitted: "Submitted",
-  ward_reviewed: "Ward reviewed",
-  constituency_reviewed: "Constituency reviewed",
-  county_approved: "County approved",
+  ward_reviewed: "Under review",
+  constituency_reviewed: "Under review",
+  county_approved: "Approved",
   disbursed: "Disbursed",
   rejected: "Rejected",
   withdrawn: "Withdrawn",
