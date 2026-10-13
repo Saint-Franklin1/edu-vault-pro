@@ -41,11 +41,6 @@ interface Doc {
   rejection_reason: string | null;
   created_at: string;
   storage_path: string;
-  chief_approved: boolean;
-  chief_category: string | null;
-  ward_approved: boolean;
-  constituency_approved: boolean;
-  county_approved: boolean;
 }
 
 const StudentDashboard = () => {
@@ -96,7 +91,7 @@ const StudentDashboard = () => {
     supabase
       .from("documents")
       .select(
-        "id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path,chief_approved,chief_category,ward_approved,constituency_approved,county_approved"
+        "id,title,file_name,mime_type,status,rejection_reason,created_at,storage_path"
       )
       .eq("user_id", user.id)
       .is("deleted_at", null)
@@ -350,7 +345,7 @@ const StudentDashboard = () => {
                 </Button>
               </form>
               <p className="text-xs text-muted-foreground mt-3">
-                Uploading the same document type again replaces the previous file and resets all approvals.
+                Uploading the same document type again replaces the previous file and resets verification.
               </p>
             </CardContent>
           </Card>
@@ -374,7 +369,7 @@ const StudentDashboard = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>File</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Approval stage</TableHead>
+                    <TableHead>Verification stage</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -386,11 +381,6 @@ const StudentDashboard = () => {
                         {d.title}
                         {d.status === "rejected" && d.rejection_reason && (
                           <p className="text-xs text-destructive mt-1">Reason: {d.rejection_reason}</p>
-                        )}
-                        {d.chief_category && (
-                          <p className="text-xs text-muted-foreground mt-1 capitalize">
-                            Category: {d.chief_category}
-                          </p>
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{d.file_name}</TableCell>

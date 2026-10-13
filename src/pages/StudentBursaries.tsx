@@ -51,8 +51,8 @@ interface MyApplication {
 
 const STAGE_LABEL: Record<Stage, string> = {
   submitted: "Submitted",
-  ward_reviewed: "Ward reviewed",
-  constituency_reviewed: "Constituency reviewed",
+  ward_reviewed: "Under review",
+  constituency_reviewed: "Under review",
   county_approved: "Approved",
   disbursed: "Disbursed",
   rejected: "Rejected",
@@ -249,7 +249,7 @@ const StudentBursaries = () => {
       });
       return;
     }
-    toast({ title: "Application submitted", description: "Your ward admin will begin the review." });
+    toast({ title: "Application submitted", description: "An admin will review your application shortly." });
     setApplyTo(null);
     loadApplications();
   };

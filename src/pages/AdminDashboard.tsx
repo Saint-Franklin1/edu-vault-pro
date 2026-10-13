@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth, highestRole } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge, DocStatus } from "@/components/StatusBadge";
 import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, FileText, ShieldCheck, XCircle } from "lucide-react";
@@ -27,29 +27,19 @@ interface DocRow {
   user_id: string;
   rejection_reason: string | null;
   created_at: string;
-  chief_approved: boolean;
-  chief_category: string | null;
-  recommendation_letter_url: string | null;
-  ward_approved: boolean;
-  constituency_approved: boolean;
-  county_approved: boolean;
+  verified_at: string | null;
   profiles?: { full_name: string | null; email: string | null } | null;
 }
 
-const stageBadge = (d: DocRow) => {
+const verificationBadge = (d: DocRow) => {
   if (d.status === "rejected") return { label: "Rejected", variant: "destructive" as const };
-  if (d.county_approved && d.constituency_approved && d.ward_approved && d.chief_approved)
-    return { label: "Fully Verified", variant: "default" as const };
-  if (d.county_approved) return { label: "County Approved", variant: "secondary" as const };
-  if (d.constituency_approved) return { label: "Constituency Approved", variant: "secondary" as const };
-  if (d.ward_approved) return { label: "Ward Approved", variant: "secondary" as const };
-  if (d.chief_approved) return { label: "Chief Approved", variant: "secondary" as const };
-  return { label: "Pending Chief", variant: "outline" as const };
+  if (d.status === "verified") return { label: "Verified", variant: "default" as const };
+  if (d.status === "in_queue") return { label: "In review", variant: "secondary" as const };
+  return { label: "Pending admin review", variant: "outline" as const };
 };
 
 const AdminDashboard = () => {
-  const { user, roles } = useAuth();
-  const role = highestRole(roles);
+  const { user } = useAuth();
 
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [statusFilter, setStatusFilter] = useState<DocStatus | "all">("all");
@@ -60,7 +50,7 @@ const AdminDashboard = () => {
     let q = supabase
       .from("documents")
       .select(
-        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,chief_approved,chief_category,recommendation_letter_url,ward_approved,constituency_approved,county_approved, profiles!inner(full_name,email)"
+        "id,title,file_name,mime_type,status,storage_path,user_id,rejection_reason,created_at,verified_at, profiles!inner(full_name,email)"
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -95,23 +85,21 @@ const AdminDashboard = () => {
     rejected: docs.filter((d) => d.status === "rejected").length,
   };
 
-  const approve = async (d: DocRow, level: "ward" | "constituency" | "county") => {
-    const patch: {
-      ward_approved?: boolean;
-      constituency_approved?: boolean;
-      county_approved?: boolean;
-      status?: DocStatus;
-    } = {};
-    if (level === "ward") patch.ward_approved = true;
-    if (level === "constituency") patch.constituency_approved = true;
-    if (level === "county") patch.county_approved = true;
-    if (d.status === "pending") patch.status = "in_queue";
-    const { error } = await supabase.from("documents").update(patch).eq("id", d.id);
+  const verify = async (d: DocRow) => {
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        status: "verified",
+        verified_by: user?.id,
+        verified_at: new Date().toISOString(),
+        rejection_reason: null,
+      })
+      .eq("id", d.id);
     if (error) {
-      toast({ title: "Approval failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: `${level[0].toUpperCase() + level.slice(1)} approval recorded` });
+      toast({ title: "Verification failed", description: error.message, variant: "destructive" });
+      return;
     }
+    toast({ title: "Document verified" });
   };
 
   const reject = async (id: string, reasonText: string) => {
@@ -144,36 +132,14 @@ const AdminDashboard = () => {
     window.open(data.signedUrl, "_blank", "noopener");
   };
 
-  const viewLetter = async (path: string) => {
-    const { data, error } = await supabase.storage
-      .from("chief-letters")
-      .createSignedUrl(path, 60);
-    if (error || !data) {
-      toast({ title: "Couldn't open letter", description: error?.message, variant: "destructive" });
-      return;
-    }
-    window.open(data.signedUrl, "_blank", "noopener");
-  };
-
-  // Super admin is intentionally excluded from approvals (oversight only).
-  const nextAction = (d: DocRow): null | "ward" | "constituency" | "county" => {
-    if (d.status === "rejected") return null;
-    if (!d.chief_approved) return null; // Chief must approve first (handled in ChiefDashboard)
-    if (d.ward_approved && d.constituency_approved && d.county_approved) return null;
-    if (!d.ward_approved) return role === "ward_admin" ? "ward" : null;
-    if (!d.constituency_approved) return role === "constituency_admin" ? "constituency" : null;
-    if (!d.county_approved) return role === "county_admin" ? "county" : null;
-    return null;
-  };
-
   return (
     <AppShell>
       <div className="container py-8 space-y-8">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold">Admin dashboard</h1>
-            <p className="text-muted-foreground capitalize">
-              Acting as {role?.replace("_", " ")}. You see documents within your geographic scope.
+            <h1 className="text-3xl font-bold">Admin verification</h1>
+            <p className="text-muted-foreground">
+              Review each student upload once and mark it as verified or rejected.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -185,7 +151,7 @@ const AdminDashboard = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Pending", value: counts.pending },
-            { label: "In queue", value: counts.in_queue },
+            { label: "In review", value: counts.in_queue },
             { label: "Verified", value: counts.verified },
             { label: "Rejected", value: counts.rejected },
           ].map((s) => (
@@ -203,7 +169,7 @@ const AdminDashboard = () => {
             <div>
               <CardTitle>Documents</CardTitle>
               <CardDescription>
-                Hierarchical approval: Ward → Constituency → County. The system auto-marks Verified when all three approve.
+                Single-step admin verification queue.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -215,7 +181,7 @@ const AdminDashboard = () => {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_queue">In queue</SelectItem>
+                  <SelectItem value="in_queue">In review</SelectItem>
                   <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
@@ -235,15 +201,14 @@ const AdminDashboard = () => {
                     <TableHead>Student</TableHead>
                     <TableHead>Document</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Approval stage</TableHead>
+                    <TableHead>Verification</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {docs.map((d) => {
-                    const stage = stageBadge(d);
-                    const action = nextAction(d);
+                    const stage = verificationBadge(d);
                     return (
                       <TableRow key={d.id}>
                         <TableCell>
@@ -260,13 +225,6 @@ const AdminDashboard = () => {
                         <TableCell><StatusBadge status={d.status} /></TableCell>
                         <TableCell>
                           <Badge variant={stage.variant}>{stage.label}</Badge>
-                          <div className="mt-1 flex gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            <span className={d.ward_approved ? "text-accent font-semibold" : ""}>W</span>
-                            <span>›</span>
-                            <span className={d.constituency_approved ? "text-accent font-semibold" : ""}>C</span>
-                            <span>›</span>
-                            <span className={d.county_approved ? "text-accent font-semibold" : ""}>Co</span>
-                          </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(d.created_at).toLocaleDateString()}
@@ -275,27 +233,12 @@ const AdminDashboard = () => {
                           <Button size="sm" variant="ghost" onClick={() => view(d.storage_path)}>
                             View
                           </Button>
-                          {d.recommendation_letter_url && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => viewLetter(d.recommendation_letter_url!)}
-                              title="Chief's recommendation letter"
-                            >
-                              <FileText className="w-4 h-4" /> Letter
+                          {d.status !== "verified" && d.status !== "rejected" && (
+                            <Button size="sm" onClick={() => verify(d)}>
+                              <CheckCircle2 className="w-4 h-4" /> Verify
                             </Button>
                           )}
-                          {action && (
-                            <Button size="sm" onClick={() => approve(d, action)}>
-                              <CheckCircle2 className="w-4 h-4" />{" "}
-                              {action === "ward"
-                                ? "Approve (Ward)"
-                                : action === "constituency"
-                                ? "Approve (Constituency)"
-                                : "Approve (County)"}
-                            </Button>
-                          )}
-                          {d.status !== "rejected" && d.status !== "verified" && (
+                          {d.status !== "verified" && d.status !== "rejected" && (
                             rejectionId === d.id ? (
                               <span className="inline-flex items-center gap-1">
                                 <Input

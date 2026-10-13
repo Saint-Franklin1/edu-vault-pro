@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth, highestRole } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { ClipboardList } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type Stage =
   | "submitted" | "ward_reviewed" | "constituency_reviewed"
@@ -30,7 +29,6 @@ interface ApplicationRow {
   student_id: string;
   message: string | null;
   current_stage: Stage;
-  recommended_amount: number | null;
   approved_amount: number | null;
   amount_requested: number | null;
   rejection_reason: string | null;
@@ -59,9 +57,9 @@ interface ApplicationRow {
 
 const STAGE_LABEL: Record<Stage, string> = {
   submitted: "Submitted",
-  ward_reviewed: "Ward reviewed",
-  constituency_reviewed: "Constituency reviewed",
-  county_approved: "County approved",
+  ward_reviewed: "Under review",
+  constituency_reviewed: "Under review",
+  county_approved: "Approved",
   disbursed: "Disbursed",
   rejected: "Rejected",
   withdrawn: "Withdrawn",
@@ -69,22 +67,22 @@ const STAGE_LABEL: Record<Stage, string> = {
 
 const STAGE_VARIANT: Record<Stage, "default" | "secondary" | "destructive" | "outline"> = {
   submitted: "secondary",
-  ward_reviewed: "outline",
-  constituency_reviewed: "outline",
+  ward_reviewed: "secondary",
+  constituency_reviewed: "secondary",
   county_approved: "default",
   disbursed: "default",
   rejected: "destructive",
   withdrawn: "outline",
 };
 
+const REVIEWABLE: Stage[] = ["submitted", "ward_reviewed", "constituency_reviewed"];
+const FILTER_STAGES: Stage[] = ["submitted", "county_approved", "disbursed", "rejected", "withdrawn"];
+
 const AdminApplications = () => {
-  const { roles } = useAuth();
-  const role = highestRole(roles);
   const [items, setItems] = useState<ApplicationRow[]>([]);
   const [stageFilter, setStageFilter] = useState<Stage | "all">("all");
   const [reviewing, setReviewing] = useState<ApplicationRow | null>(null);
   const [notes, setNotes] = useState("");
-  const [recommended, setRecommended] = useState("");
   const [approved, setApproved] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,7 +91,7 @@ const AdminApplications = () => {
     let query = supabase
       .from("bursary_applications")
       .select(
-        "id,bursary_id,student_id,message,current_stage,recommended_amount,approved_amount,amount_requested,rejection_reason,review_notes,created_at," +
+        "id,bursary_id,student_id,message,current_stage,approved_amount,amount_requested,rejection_reason,review_notes,created_at," +
         "institution_name,course,study_level,year_of_study,admission_number,tuition_required,upkeep_required,other_fees," +
         "parents_status,guardian_name,guardian_relationship,household_income_bracket,siblings_in_school,has_disability," +
         "bank_name,account_number,mpesa_number, bursaries(title)"
@@ -128,54 +126,39 @@ const AdminApplications = () => {
   const openReview = (row: ApplicationRow) => {
     setReviewing(row);
     setNotes(row.review_notes ?? "");
-    setRecommended(row.recommended_amount?.toString() ?? "");
     setApproved(row.approved_amount?.toString() ?? row.amount_requested?.toString() ?? "");
     setRejectReason("");
   };
 
-  // Determine which stage actions the current admin role can perform on this row
-  const availableActions = (row: ApplicationRow): { stage: Stage; label: string }[] => {
-    if (!row) return [];
-    const r = role;
-    const actions: { stage: Stage; label: string }[] = [];
-    if (row.current_stage === "submitted" && (r === "ward_admin" || r === "super_admin")) {
-      actions.push({ stage: "ward_reviewed", label: "Recommend at ward" });
+  const availableActions = (row: ApplicationRow): { stage: "county_approved" | "rejected"; label: string }[] => {
+    if (REVIEWABLE.includes(row.current_stage)) {
+      return [
+        { stage: "county_approved", label: "Approve" },
+        { stage: "rejected", label: "Reject" },
+      ];
     }
-    if (row.current_stage === "ward_reviewed" && (r === "constituency_admin" || r === "super_admin")) {
-      actions.push({ stage: "constituency_reviewed", label: "Endorse at constituency" });
-    }
-    if (row.current_stage === "constituency_reviewed" && (r === "county_admin" || r === "super_admin")) {
-      actions.push({ stage: "county_approved", label: "Approve at county" });
-    }
-    if (["submitted", "ward_reviewed", "constituency_reviewed"].includes(row.current_stage)
-        && (r === "ward_admin" || r === "constituency_admin" || r === "county_admin" || r === "super_admin")) {
-      actions.push({ stage: "rejected", label: "Reject" });
-    }
-    return actions;
+    return [];
   };
 
-  const transitionTo = async (stage: Stage) => {
+  const transitionTo = async (stage: "county_approved" | "rejected") => {
     if (!reviewing) return;
     setBusy(true);
     const update: {
       current_stage: Stage;
       review_notes: string | null;
-      recommended_amount?: number;
       approved_amount?: number;
       rejection_reason?: string;
     } = {
       current_stage: stage,
       review_notes: notes || null,
     };
-    if (stage === "ward_reviewed" || stage === "constituency_reviewed") {
-      if (recommended) update.recommended_amount = Number(recommended);
-    }
     if (stage === "county_approved") {
       if (!approved || Number(approved) <= 0) {
         toast({ title: "Approved amount required", variant: "destructive" });
         setBusy(false); return;
       }
       update.approved_amount = Number(approved);
+      update.rejection_reason = null;
     }
     if (stage === "rejected") {
       if (!rejectReason.trim()) {
@@ -198,8 +181,6 @@ const AdminApplications = () => {
     load();
   };
 
-  const STAGES: Stage[] = ["submitted", "ward_reviewed", "constituency_reviewed", "county_approved", "disbursed", "rejected", "withdrawn"];
-
   return (
     <AppShell>
       <div className="container py-8 space-y-6">
@@ -210,7 +191,7 @@ const AdminApplications = () => {
               Bursary applications
             </h1>
             <p className="text-muted-foreground">
-              Review applications stage-by-stage. Ward → Constituency → County → Disbursed.
+              Single-admin review. Applications are approved or rejected in one pass.
             </p>
           </div>
           <div className="w-56">
@@ -218,14 +199,14 @@ const AdminApplications = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All stages</SelectItem>
-                {STAGES.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>)}
+                {FILTER_STAGES.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-7">
-          {STAGES.map((s) => (
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+          {FILTER_STAGES.map((s) => (
             <Card key={s} className="shadow-card">
               <CardContent className="py-3">
                 <div className="text-xs uppercase text-muted-foreground tracking-wide truncate">{STAGE_LABEL[s]}</div>
@@ -238,7 +219,7 @@ const AdminApplications = () => {
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>Applications</CardTitle>
-            <CardDescription>Click an application to take action.</CardDescription>
+            <CardDescription>Click an application to review.</CardDescription>
           </CardHeader>
           <CardContent>
             {items.length === 0 ? (
@@ -316,15 +297,9 @@ const AdminApplications = () => {
               )}
 
               <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="grid gap-2">
-                    <Label>Recommended amount (KES)</Label>
-                    <Input type="number" value={recommended} onChange={(e) => setRecommended(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Approved amount (county only)</Label>
-                    <Input type="number" value={approved} onChange={(e) => setApproved(e.target.value)} />
-                  </div>
+                <div className="grid gap-2">
+                  <Label>Approved amount (KES)</Label>
+                  <Input type="number" value={approved} onChange={(e) => setApproved(e.target.value)} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Review notes</Label>

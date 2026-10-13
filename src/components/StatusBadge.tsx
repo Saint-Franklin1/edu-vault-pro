@@ -34,25 +34,13 @@ export function StatusBadge({ status }: { status: DocStatus }) {
 
 export interface StageFlags {
   status: DocStatus;
-  chief_approved?: boolean;
-  ward_approved?: boolean;
-  constituency_approved?: boolean;
-  county_approved?: boolean;
 }
 
-/**
- * Compact label describing where the document sits in the
- * Chief → Ward → Constituency → County → Verified chain.
- */
 export function stageLabel(d: StageFlags): string {
   if (d.status === "rejected") return "Rejected";
-  if (d.county_approved && d.constituency_approved && d.ward_approved && d.chief_approved)
-    return "Fully Verified";
-  if (d.county_approved) return "County Approved";
-  if (d.constituency_approved) return "Constituency Approved";
-  if (d.ward_approved) return "Ward Approved";
-  if (d.chief_approved) return "Chief Approved";
-  return "Pending Chief";
+  if (d.status === "verified") return "Verified by admin";
+  if (d.status === "in_queue") return "In admin review";
+  return "Pending admin review";
 }
 
 export function ApprovalStage({ d }: { d: StageFlags }) {
@@ -67,15 +55,6 @@ export function ApprovalStage({ d }: { d: StageFlags }) {
       >
         <ShieldCheck className="w-3 h-3" /> {label}
       </Badge>
-      <div className="flex gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-        <span className={d.chief_approved ? "text-accent font-semibold" : ""}>Ch</span>
-        <span>›</span>
-        <span className={d.ward_approved ? "text-accent font-semibold" : ""}>W</span>
-        <span>›</span>
-        <span className={d.constituency_approved ? "text-accent font-semibold" : ""}>C</span>
-        <span>›</span>
-        <span className={d.county_approved ? "text-accent font-semibold" : ""}>Co</span>
-      </div>
     </div>
   );
 }
